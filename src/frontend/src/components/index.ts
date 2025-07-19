@@ -4,4 +4,5 @@ export * from "./Card";
 export * from "./ErrorDisplay";
 export * from "./InputField";
 export * from "./Loader";
+export * from "./NavigationBar";
 export * from "./TextArea";
