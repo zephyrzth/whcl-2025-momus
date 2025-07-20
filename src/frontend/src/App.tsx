@@ -2,34 +2,24 @@ import { useState } from "react";
 import ReactIcon from "../assets/React-icon.webp";
 
 // Import components and views
-import { Loader, ErrorDisplay, NavigationBar } from "./components";
-import { HomeView, CounterView, LlmPromptView } from "./views";
+import { Loader, ErrorDisplay } from "./components";
+import {
+  GreetingView,
+  CounterView,
+  LlmPromptView,
+  AgentCanvasView,
+  AgentMarketplaceView,
+} from "./views";
 
 function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [activeView, setActiveView] = useState<string>("home");
+  const [currentPage, setCurrentPage] = useState<
+    "home" | "canvas" | "marketplace"
+  >("home");
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
-  };
-
-  const handleViewChange = (view: string) => {
-    setActiveView(view);
-    setError(undefined); // Clear any existing errors when switching views
-  };
-
-  const renderCurrentView = () => {
-    switch (activeView) {
-      case "home":
-        return <HomeView onError={handleError} setLoading={setLoading} />;
-      case "llm":
-        return <LlmPromptView onError={handleError} setLoading={setLoading} />;
-      case "counter":
-        return <CounterView onError={handleError} setLoading={setLoading} />;
-      default:
-        return <HomeView onError={handleError} setLoading={setLoading} />;
-    }
   };
 
   const logoStyle = {
@@ -50,11 +40,7 @@ function App() {
           }
         `}
       </style>
-
-      {/* Fixed Navigation Bar */}
-      <NavigationBar activeView={activeView} onViewChange={handleViewChange} />
-
-      <div className="flex min-h-screen items-center justify-center bg-gray-800 pt-20 text-white">
+      <div className="flex min-h-screen items-center justify-center bg-gray-800 text-white">
         <div className="mx-auto w-full max-w-4xl space-y-8 p-8 text-center">
           <div className="mb-8">
             <a href="https://reactjs.org" target="_blank" rel="noreferrer">
@@ -72,8 +58,75 @@ function App() {
             <h2 className="text-xl">React + Motoko + Internet Computer</h2>
           </div>
 
+          {/* Navigation */}
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={() => setCurrentPage("home")}
+              className={`rounded px-6 py-2 font-medium transition-colors ${
+                currentPage === "home"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+              }`}
+            >
+              Demo Pages
+            </button>
+            <button
+              onClick={() => setCurrentPage("marketplace")}
+              className={`rounded px-6 py-2 font-medium transition-colors ${
+                currentPage === "marketplace"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+              }`}
+            >
+              Agent Marketplace
+            </button>
+            <button
+              onClick={() => setCurrentPage("canvas")}
+              className={`rounded px-6 py-2 font-medium transition-colors ${
+                currentPage === "canvas"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+              }`}
+            >
+              Agent Canvas
+            </button>
+          </div>
+
           {/* Content Sections */}
-          {renderCurrentView()}
+          <div className="space-y-6">
+            {currentPage === "home" && (
+              <>
+                {/* Greeting Section */}
+                <GreetingView onError={handleError} setLoading={setLoading} />
+
+                {/* Counter Section */}
+                <CounterView onError={handleError} setLoading={setLoading} />
+
+                {/* LLM Prompt Section */}
+                <LlmPromptView onError={handleError} setLoading={setLoading} />
+              </>
+            )}
+
+            {currentPage === "marketplace" && (
+              <>
+                {/* Agent Marketplace Section */}
+                <AgentMarketplaceView
+                  onError={handleError}
+                  setLoading={setLoading}
+                />
+              </>
+            )}
+
+            {currentPage === "canvas" && (
+              <>
+                {/* Agent Canvas Section */}
+                <AgentCanvasView
+                  onError={handleError}
+                  setLoading={setLoading}
+                />
+              </>
+            )}
+          </div>
 
           {/* Loading and Error States */}
           {loading && !error && <Loader />}

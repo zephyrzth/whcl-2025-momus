@@ -6,3 +6,4 @@ export * from "./InputField";
 export * from "./Loader";
 export * from "./NavigationBar";
 export * from "./TextArea";
+export * from "./AgentCard";
