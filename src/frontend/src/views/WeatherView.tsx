@@ -5,14 +5,13 @@ import { InputField } from "../components/InputField";
 import { Card } from "../components/Card";
 import { Loader } from "../components/Loader";
 import { ErrorDisplay } from "../components/ErrorDisplay";
-import type { WeatherResponse } from "../../../declarations/backend/backend.did";
 
 export const WeatherView: React.FC = () => {
   const [cityInput, setCityInput] = useState("");
   const [latInput, setLatInput] = useState("");
   const [lonInput, setLonInput] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
-  const [weatherData, setWeatherData] = useState<WeatherResponse | null>(null);
+  const [weatherData, setWeatherData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isApiConfigured, setIsApiConfigured] = useState<boolean | null>(null);
@@ -106,14 +105,6 @@ export const WeatherView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getTemperatureColor = (temp: number): string => {
-    if (temp < 0) return "text-blue-600";
-    if (temp < 10) return "text-blue-400";
-    if (temp < 20) return "text-green-500";
-    if (temp < 30) return "text-yellow-500";
-    return "text-red-500";
   };
 
   return (
@@ -240,59 +231,15 @@ export const WeatherView: React.FC = () => {
 
         {/* Weather Results */}
         {weatherData && (
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Weather Data */}
-            <Card title="🌡️ Weather Data">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Location:</span>
-                  <span className="text-gray-700">
-                    {weatherData.weather.city}
-                    {weatherData.weather.country &&
-                      `, ${weatherData.weather.country}`}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Temperature:</span>
-                  <span
-                    className={`text-xl font-bold ${getTemperatureColor(weatherData.weather.temperature)}`}
-                  >
-                    {weatherData.weather.temperature.toFixed(1)}°C
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Humidity:</span>
-                  <span className="text-gray-700">
-                    {weatherData.weather.humidity.toString()}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Description:</span>
-                  <span className="text-gray-700 capitalize">
-                    {weatherData.weather.description}
-                  </span>
+          <Card title="🌡️ Weather & Clothing Recommendation">
+            <div className="space-y-4">
+              <div className="rounded-lg bg-blue-50 p-6">
+                <div className="whitespace-pre-wrap text-blue-900">
+                  {weatherData}
                 </div>
               </div>
-            </Card>
-
-            {/* Clothing Recommendation */}
-            <Card title="👕 Clothing Recommendation">
-              <div className="space-y-3">
-                <div className="rounded-lg bg-blue-50 p-4">
-                  <p className="mb-2 font-medium text-blue-900">
-                    Recommendation:
-                  </p>
-                  <p className="text-blue-800">
-                    {weatherData.clothing.recommendation}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="mb-2 font-medium text-gray-900">Reason:</p>
-                  <p className="text-gray-700">{weatherData.clothing.reason}</p>
-                </div>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         )}
 
         {!isApiConfigured && (

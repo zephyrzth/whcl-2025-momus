@@ -1,5 +1,4 @@
 import { backend } from "../../../declarations/backend";
-import type { WeatherResponse } from "../../../declarations/backend/backend.did";
 
 /**
  * Service for handling all backend canister API calls
@@ -58,24 +57,23 @@ export const backendService = {
   },
 
   /**
-   * Gets weather data and clothing recommendations for a city
+   * Gets weather data and clothing recommendations for a city using the execute_task function
    * @param location City name (e.g., "London", "New York")
-   * @returns Promise with weather data and clothing recommendations
+   * @returns Promise with weather recommendations as text
    */
-  async getWeatherByCity(location: string): Promise<WeatherResponse> {
-    return await backend.get_weather_with_recommendations(location);
+  async getWeatherByCity(location: string): Promise<string> {
+    const prompt = `How is the weather today in ${location}?`;
+    return await backend.execute_task(prompt);
   },
 
   /**
-   * Gets weather data and clothing recommendations for coordinates
+   * Gets weather data and clothing recommendations for coordinates using the execute_task function
    * @param lat Latitude
    * @param lon Longitude
-   * @returns Promise with weather data and clothing recommendations
+   * @returns Promise with weather recommendations as text
    */
-  async getWeatherByCoordinates(
-    lat: number,
-    lon: number,
-  ): Promise<WeatherResponse> {
-    return await backend.get_weather_by_coordinates(lat, lon);
+  async getWeatherByCoordinates(lat: number, lon: number): Promise<string> {
+    const prompt = `How is the weather at coordinates ${lat}, ${lon}?`;
+    return await backend.execute_task(prompt);
   },
 };
