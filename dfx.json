@@ -4,6 +4,11 @@
       "type": "pull",
       "id": "w36hm-eqaaa-aaaal-qr76a-cai"
     },
+    "agent-planner_agent": {
+      "dependencies": ["llm"],
+      "type": "motoko",
+      "main": "src/agents/planner_agent/main.mo"
+    },
     "backend": {
       "dependencies": ["llm"],
       "type": "motoko",
