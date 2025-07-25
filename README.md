@@ -115,7 +115,40 @@ npm start
 
 ```
 
-### 6. Run Tests
+### 6. Configure Weather Agent (Optional)
+
+The template includes a weather agent that can fetch live weather data and provide clothing recommendations. To enable this feature:
+
+1. **Get an OpenWeatherMap API key**:
+
+   - Visit [OpenWeatherMap API](https://openweathermap.org/api)
+   - Sign up for a free account
+   - Generate an API key
+
+2. **Configure the weather agent**:
+
+   ```bash
+   # Use the setup script (recommended)
+   ./scripts/setup-weather-api.sh YOUR_API_KEY_HERE
+
+   # Or manually call the canister
+   dfx canister call backend init_weather_api '("YOUR_API_KEY_HERE")'
+   ```
+
+3. **Test the weather agent**:
+
+   ```bash
+   # Get weather by city name
+   dfx canister call backend get_weather_with_recommendations '("London")'
+
+   # Get weather by coordinates (latitude, longitude)
+   dfx canister call backend get_weather_by_coordinates '(51.5074, -0.1278)'
+
+   # Check if API is configured
+   dfx canister call backend is_weather_api_configured '()'
+   ```
+
+### 7. Run Tests
 
 ```bash
 npm test

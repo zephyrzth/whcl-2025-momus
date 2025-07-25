@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add public wrapper function for direct LLM weather agent testing and debugging
+- Add AI-powered weather agent with live OpenWeatherMap API integration and intelligent clothing recommendations via LLM
 - Add navigation menu bar with Home, LLM, and Counter options for easy view switching
 - Add Agent Marketplace with trending agents for purchase and integration into canvas
 - Add React Flow canvas for agentic AI workflow design with drag & drop nodes

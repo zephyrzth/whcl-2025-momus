@@ -9,13 +9,14 @@ import {
   LlmPromptView,
   AgentCanvasView,
   AgentMarketplaceView,
+  WeatherView,
 } from "./views";
 
 function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [currentPage, setCurrentPage] = useState<
-    "home" | "canvas" | "marketplace"
+    "home" | "canvas" | "marketplace" | "weather"
   >("home");
 
   const handleError = (errorMessage: string) => {
@@ -71,6 +72,16 @@ function App() {
               Demo Pages
             </button>
             <button
+              onClick={() => setCurrentPage("weather")}
+              className={`rounded px-6 py-2 font-medium transition-colors ${
+                currentPage === "weather"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+              }`}
+            >
+              Weather Agent
+            </button>
+            <button
               onClick={() => setCurrentPage("marketplace")}
               className={`rounded px-6 py-2 font-medium transition-colors ${
                 currentPage === "marketplace"
@@ -104,6 +115,13 @@ function App() {
 
                 {/* LLM Prompt Section */}
                 <LlmPromptView onError={handleError} setLoading={setLoading} />
+              </>
+            )}
+
+            {currentPage === "weather" && (
+              <>
+                {/* Weather Agent Section */}
+                <WeatherView />
               </>
             )}
 

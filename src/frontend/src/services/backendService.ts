@@ -1,4 +1,5 @@
 import { backend } from "../../../declarations/backend";
+import type { WeatherResponse } from "../../../declarations/backend/backend.did";
 
 /**
  * Service for handling all backend canister API calls
@@ -36,5 +37,45 @@ export const backendService = {
    */
   async sendLlmPrompt(prompt: string): Promise<string> {
     return await backend.prompt(prompt);
+  },
+
+  // Weather Agent Methods
+  /**
+   * Initializes the weather API with the provided API key
+   * @param apiKey OpenWeatherMap API key
+   * @returns Promise that resolves when the API key is set
+   */
+  async initWeatherApi(apiKey: string): Promise<void> {
+    return await backend.init_weather_api(apiKey);
+  },
+
+  /**
+   * Checks if the weather API is configured with an API key
+   * @returns Promise with boolean indicating if API is configured
+   */
+  async isWeatherApiConfigured(): Promise<boolean> {
+    return await backend.is_weather_api_configured();
+  },
+
+  /**
+   * Gets weather data and clothing recommendations for a city
+   * @param location City name (e.g., "London", "New York")
+   * @returns Promise with weather data and clothing recommendations
+   */
+  async getWeatherByCity(location: string): Promise<WeatherResponse> {
+    return await backend.get_weather_with_recommendations(location);
+  },
+
+  /**
+   * Gets weather data and clothing recommendations for coordinates
+   * @param lat Latitude
+   * @param lon Longitude
+   * @returns Promise with weather data and clothing recommendations
+   */
+  async getWeatherByCoordinates(
+    lat: number,
+    lon: number,
+  ): Promise<WeatherResponse> {
+    return await backend.get_weather_by_coordinates(lat, lon);
   },
 };

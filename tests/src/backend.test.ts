@@ -77,4 +77,224 @@ describe("Vibe Coding Template Backend", () => {
     const currentCount = await actor.get_count();
     expect(currentCount).toEqual(newValue);
   });
+
+  // Weather agent tests
+  describe("Weather Agent", () => {
+    it("should initialize weather API key", async () => {
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+      // Note: We can't directly test the stored value as it's private,
+      // but we can verify the function executes without error
+    });
+
+    it("should get weather with recommendations by city name", async () => {
+      // First initialize the API key
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+
+      const cityName = "London";
+      const response = await actor.get_weather_with_recommendations(cityName);
+
+      // Verify response structure
+      expect(response).toHaveProperty("weather");
+      expect(response).toHaveProperty("clothing");
+
+      // Verify weather data structure
+      expect(response.weather).toHaveProperty("temperature");
+      expect(response.weather).toHaveProperty("humidity");
+      expect(response.weather).toHaveProperty("description");
+      expect(response.weather).toHaveProperty("city");
+      expect(response.weather).toHaveProperty("country");
+
+      // Verify clothing recommendation structure
+      expect(response.clothing).toHaveProperty("recommendation");
+      expect(response.clothing).toHaveProperty("reason");
+
+      // Verify data types
+      expect(typeof response.weather.temperature).toBe("number");
+      expect(typeof response.weather.humidity).toBe("bigint");
+      expect(typeof response.weather.description).toBe("string");
+      expect(typeof response.weather.city).toBe("string");
+      expect(typeof response.weather.country).toBe("string");
+      expect(typeof response.clothing.recommendation).toBe("string");
+      expect(typeof response.clothing.reason).toBe("string");
+
+      // Test actual values (these should fail with placeholder implementation)
+      expect(response.weather.city).not.toBe(""); // Should have actual city name
+      expect(response.weather.description).not.toBe(""); // Should have weather description
+      expect(response.clothing.recommendation).not.toBe(""); // Should have clothing recommendation
+      expect(response.clothing.reason).not.toBe(""); // Should have reason for recommendation
+    });
+
+    it("should get weather with recommendations by coordinates", async () => {
+      // First initialize the API key
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+
+      const lat = 51.5074; // London latitude
+      const lon = -0.1278; // London longitude
+      const response = await actor.get_weather_by_coordinates(lat, lon);
+
+      // Verify response structure (same as city name test)
+      expect(response).toHaveProperty("weather");
+      expect(response).toHaveProperty("clothing");
+
+      // Verify weather data structure
+      expect(response.weather).toHaveProperty("temperature");
+      expect(response.weather).toHaveProperty("humidity");
+      expect(response.weather).toHaveProperty("description");
+      expect(response.weather).toHaveProperty("city");
+      expect(response.weather).toHaveProperty("country");
+
+      // Verify clothing recommendation structure
+      expect(response.clothing).toHaveProperty("recommendation");
+      expect(response.clothing).toHaveProperty("reason");
+
+      // Test actual values (these should fail with placeholder implementation)
+      expect(response.weather.city).not.toBe(""); // Should have actual city name from coordinates
+      expect(response.weather.description).not.toBe(""); // Should have weather description
+      expect(response.clothing.recommendation).not.toBe(""); // Should have clothing recommendation
+    });
+
+    it("should handle empty city name gracefully", async () => {
+      const response = await actor.get_weather_with_recommendations("");
+      expect(response).toHaveProperty("weather");
+      expect(response).toHaveProperty("clothing");
+    });
+
+    it("should handle invalid coordinates gracefully", async () => {
+      const invalidLat = 999; // Invalid latitude
+      const invalidLon = 999; // Invalid longitude
+      const response = await actor.get_weather_by_coordinates(
+        invalidLat,
+        invalidLon,
+      );
+      expect(response).toHaveProperty("weather");
+      expect(response).toHaveProperty("clothing");
+    });
+
+    it("should provide different recommendations for different temperature ranges", async () => {
+      // First initialize the API key
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+
+      // This test will be more meaningful once we implement the actual logic
+      const response1 = await actor.get_weather_with_recommendations("London");
+      const response2 = await actor.get_weather_by_coordinates(
+        51.5074,
+        -0.1278,
+      );
+
+      // For now, just verify both return valid structures
+      expect(response1).toHaveProperty("weather");
+      expect(response1).toHaveProperty("clothing");
+      expect(response2).toHaveProperty("weather");
+      expect(response2).toHaveProperty("clothing");
+    });
+
+    it("should return meaningful weather data using AI agent", async () => {
+      // First initialize the API key
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+
+      const response = await actor.get_weather_with_recommendations("London");
+
+      // Debug: log the actual response
+      console.log("Actual weather response:", response);
+
+      // Verify AI agent returns meaningful data, not empty strings
+      expect(response.weather.temperature).toBeGreaterThan(0);
+      expect(response.weather.humidity).toBeGreaterThan(BigInt(0));
+      expect(response.weather.description).toBeTruthy();
+      expect(response.weather.city).toBeTruthy();
+      expect(response.clothing.recommendation).toBeTruthy();
+      expect(response.clothing.reason).toBeTruthy();
+    });
+
+    it("should handle weather API errors gracefully with AI agent", async () => {
+      // First initialize the API key
+      const testApiKey = "invalid-api-key";
+      await actor.init_weather_api(testApiKey);
+
+      const response =
+        await actor.get_weather_with_recommendations("InvalidCity");
+
+      // Should still return a valid response structure even on errors
+      expect(response).toHaveProperty("weather");
+      expect(response).toHaveProperty("clothing");
+      expect(typeof response.weather.temperature).toBe("number");
+      expect(typeof response.weather.humidity).toBe("bigint");
+    });
+
+    it("should integrate with OpenWeather API via LLM for real weather data", async () => {
+      // First initialize the API key
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+
+      const response = await actor.get_weather_with_recommendations("London");
+
+      // This test should fail until we implement actual OpenWeather API integration
+      // The response should contain actual weather data from OpenWeather API
+      expect(response.weather.city).toBe("London"); // Should match actual city from API
+      expect(response.weather.country).toBe("GB"); // Should match actual country from API
+
+      // Clothing recommendations should be more specific than placeholder
+      expect(response.clothing.recommendation).not.toBe(
+        "Light clothing recommended",
+      );
+      expect(response.clothing.reason).not.toBe("Pleasant weather conditions");
+
+      // Should have realistic weather values (not placeholder values)
+      expect(response.weather.temperature).not.toBe(25.0);
+      expect(response.weather.humidity).not.toBe(BigInt(60));
+    });
+
+    it("should allow direct LLM weather agent testing via public wrapper", async () => {
+      // First initialize the API key
+      const testApiKey = "test-api-key-123";
+      await actor.init_weather_api(testApiKey);
+
+      // Test direct LLM call with city location type
+      const cityResponse = await actor.get_weather_data_via_llm_public(
+        "Jakarta",
+        "city",
+      );
+
+      // Verify response structure
+      expect(cityResponse).toHaveProperty("weather");
+      expect(cityResponse).toHaveProperty("clothing");
+      expect(cityResponse.weather).toHaveProperty("temperature");
+      expect(cityResponse.weather).toHaveProperty("humidity");
+      expect(cityResponse.weather).toHaveProperty("description");
+      expect(cityResponse.weather).toHaveProperty("city");
+      expect(cityResponse.weather).toHaveProperty("country");
+      expect(cityResponse.clothing).toHaveProperty("recommendation");
+      expect(cityResponse.clothing).toHaveProperty("reason");
+
+      // Test direct LLM call with coordinates location type
+      const coordResponse = await actor.get_weather_data_via_llm_public(
+        "-6.2088,106.8456",
+        "coordinates",
+      );
+
+      // Verify response structure for coordinates
+      expect(coordResponse).toHaveProperty("weather");
+      expect(coordResponse).toHaveProperty("clothing");
+    });
+
+    it("should handle missing API key in public wrapper", async () => {
+      // Don't initialize API key for this test
+
+      const response = await actor.get_weather_data_via_llm_public(
+        "Jakarta",
+        "city",
+      );
+
+      // Should return API key error
+      expect(response.weather.description).toBe("API key not configured");
+      expect(response.clothing.recommendation).toBe(
+        "Please configure weather API key first",
+      );
+    });
+  });
 });

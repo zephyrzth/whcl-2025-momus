@@ -5,3 +5,4 @@ export * from "./HomeView";
 export * from "./LlmPromptView";
 export * from "./AgentCanvasView";
 export * from "./AgentMarketplaceView";
+export * from "./WeatherView";
