@@ -17,6 +17,9 @@ actor Main {
     // Weather API configuration
     private stable var weatherApiKey : Text = "";
 
+    // Canvas state storage
+    private stable var canvasState : ?CanvasState = null;
+
     // Weather data types
     public type WeatherData = {
         temperature: Float;
@@ -34,6 +37,34 @@ actor Main {
     public type WeatherResponse = {
         weather: WeatherData;
         clothing: ClothingRecommendation;
+    };
+
+    // Canvas data types for agent workflow
+    public type AgentPosition = {
+        x: Float;
+        y: Float;
+    };
+
+    public type AgentNode = {
+        id: Text;
+        nodeType: Text;
+        position: AgentPosition;
+        agentLabel: Text;
+        attributes: [(Text, Text)];
+    };
+
+    public type AgentConnection = {
+        id: Text;
+        source: Text;
+        target: Text;
+        connectionType: Text;
+    };
+
+    public type CanvasState = {
+        nodes: [AgentNode];
+        connections: [AgentConnection];
+        lastUpdated: Text;
+        version: Nat;
     };
 
     // HTTP Outcall types for external API calls
@@ -92,7 +123,7 @@ actor Main {
     private func get_weather_data_via_llm(location: Text, locationType: Text) : async WeatherResponse {
         try {
             // Create a comprehensive prompt for the LLM to act as a weather agent
-            let weatherPrompt = "You are an intelligent weather agent that can fetch weather data and provide clothing recommendations. " #
+            let weatherPrompt = "System prompt: You are an intelligent weather agent that can fetch weather data, return it to the user in human-readable format, and provide clothing recommendations. " #
                 "Your task is to:\n" #
                 "1. Make an HTTP GET request to the OpenWeather API\n" #
                 "2. Parse the weather data from the JSON response\n" #
@@ -460,6 +491,33 @@ actor Main {
             };
         } catch (_error) {
             "Network error occurred";
+        };
+    };
+
+    // Canvas state management functions
+    
+    // Save canvas state
+    public func save_canvas_state(state: CanvasState) : async Bool {
+        canvasState := ?state;
+        true;
+    };
+
+    // Load canvas state
+    public query func get_canvas_state() : async ?CanvasState {
+        canvasState;
+    };
+
+    // Clear canvas state
+    public func clear_canvas_state() : async Bool {
+        canvasState := null;
+        true;
+    };
+
+    // Check if canvas has saved state
+    public query func has_canvas_state() : async Bool {
+        switch (canvasState) {
+            case (?_) { true };
+            case null { false };
         };
     };
 };
