@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add navigation menu bar with Home, LLM, and Counter options for easy view switching
 - Add Agent Marketplace with trending agents for purchase and integration into canvas
 - Add React Flow canvas for agentic AI workflow design with drag & drop nodes
+- Add backend persistent storage for agent canvas state with positions, connections, and attributes
+- Add frontend integration with backend canvas state management including error handling and loading states
 - Add set_count update method to allow setting the counter to a specific value
 - Add frontend development server scripts (`npm run start`)
 - Add LLM canister implementation
