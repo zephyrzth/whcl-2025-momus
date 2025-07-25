@@ -15,7 +15,7 @@ actor Main {
     private stable var counter : Nat64 = 0;
     
     // Weather API configuration
-    private stable var weatherApiKey : Text = "b546ecac84d575af4d3354dbd74da1a4";
+    private stable var weatherApiKey : Text = "";
 
     // Weather data types
     public type WeatherData = {
