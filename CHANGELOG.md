@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add HTTP outcalls implementation for real-time weather data fetching from OpenWeatherMap API
 - Add public wrapper function for direct LLM weather agent testing and debugging
 - Add AI-powered weather agent with live OpenWeatherMap API integration and intelligent clothing recommendations via LLM
 - Add navigation menu bar with Home, LLM, and Counter options for easy view switching

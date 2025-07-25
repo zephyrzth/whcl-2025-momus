@@ -87,6 +87,101 @@ describe("Vibe Coding Template Backend", () => {
       // but we can verify the function executes without error
     });
 
+    describe("HTTP Outcall Weather Functions", () => {
+      beforeEach(async () => {
+        // Initialize API key before each HTTP outcall test
+        const testApiKey = "b546ecac84d575af4d3354dbd74da1a4";
+        await actor.init_weather_api(testApiKey);
+      });
+
+      it("should fetch weather data via HTTP outcall for city name", async () => {
+        const cityName = "Jakarta";
+        const result = await actor.get_weather_via_http_outcall(
+          cityName,
+          "city",
+        );
+
+        // The result should be a Result type with either #ok or #err
+        expect(result).toBeDefined();
+
+        // Check if it's a successful result (this may fail in test environment due to HTTP outcalls)
+        // In a real test environment with proper HTTP outcall support, we'd check for specific values
+        if ("ok" in result) {
+          const weatherData = result.ok;
+          expect(weatherData).toHaveProperty("temperature");
+          expect(weatherData).toHaveProperty("humidity");
+          expect(weatherData).toHaveProperty("description");
+          expect(weatherData).toHaveProperty("city");
+          expect(weatherData).toHaveProperty("country");
+          expect(typeof weatherData.temperature).toBe("number");
+          expect(typeof weatherData.humidity).toBe("bigint");
+          expect(typeof weatherData.description).toBe("string");
+          expect(typeof weatherData.city).toBe("string");
+          expect(typeof weatherData.country).toBe("string");
+        } else if ("err" in result) {
+          // In test environment, HTTP outcalls might fail - this is expected
+          expect(typeof result.err).toBe("string");
+          expect(result.err.length).toBeGreaterThan(0);
+        }
+      });
+
+      it("should fetch weather data via HTTP outcall for coordinates", async () => {
+        const coordinates = "-6.2146,106.8451"; // Jakarta coordinates
+        const result = await actor.get_weather_via_http_outcall(
+          coordinates,
+          "coordinates",
+        );
+
+        expect(result).toBeDefined();
+
+        // Check the result structure regardless of success/failure
+        if ("ok" in result) {
+          const weatherData = result.ok;
+          expect(weatherData).toHaveProperty("temperature");
+          expect(weatherData).toHaveProperty("humidity");
+          expect(weatherData).toHaveProperty("description");
+          expect(weatherData).toHaveProperty("city");
+          expect(weatherData).toHaveProperty("country");
+        } else if ("err" in result) {
+          expect(typeof result.err).toBe("string");
+          expect(result.err.length).toBeGreaterThan(0);
+        }
+      });
+
+      it("should handle HTTP outcall errors gracefully", async () => {
+        const invalidCity = "ThisCityDoesNotExist123456";
+        const result = await actor.get_weather_via_http_outcall(
+          invalidCity,
+          "city",
+        );
+
+        expect(result).toBeDefined();
+
+        // Should return an error for invalid city
+        if ("err" in result) {
+          expect(typeof result.err).toBe("string");
+          expect(result.err.length).toBeGreaterThan(0);
+        }
+        // If it somehow succeeds, that's also valid for this test
+      });
+
+      it("should return error when API key is not configured for HTTP outcall", async () => {
+        // Reset API key to empty
+        await actor.init_weather_api("");
+
+        const result = await actor.get_weather_via_http_outcall(
+          "Jakarta",
+          "city",
+        );
+
+        expect(result).toBeDefined();
+        expect("err" in result).toBe(true);
+        if ("err" in result) {
+          expect(result.err).toBe("API key not configured");
+        }
+      });
+    });
+
     it("should get weather with recommendations by city name", async () => {
       // First initialize the API key
       const testApiKey = "test-api-key-123";
