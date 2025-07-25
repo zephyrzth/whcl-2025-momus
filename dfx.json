@@ -4,10 +4,20 @@
       "type": "pull",
       "id": "w36hm-eqaaa-aaaal-qr76a-cai"
     },
+    "agent-registry": {
+      "dependencies": ["agent-planner_agent", "agent-airquality_agent"],
+      "type": "motoko",
+      "main": "src/shared/AgentRegistry.mo"
+    },
     "agent-planner_agent": {
       "dependencies": ["llm"],
       "type": "motoko",
       "main": "src/agents/planner_agent/main.mo"
+    },
+    "agent-airquality_agent": {
+      "dependencies": ["llm"],
+      "type": "motoko",
+      "main": "src/agents/airquality_agent/main.mo"
     },
     "backend": {
       "dependencies": ["llm"],

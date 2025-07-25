@@ -27,6 +27,7 @@ Whether you're building full-stack dapps or agents, this template gives you a so
 
 ## 📜 Table of Contents
 
+- [🚀 Quick Start Guide (5 minutes!)](#-quick-setup-recommended-)
 - [🎥 Recording](#-recording)
 - [🚀 Getting Started](#-getting-started)
 - [📁 Project Structure](#-project-structure)
@@ -35,6 +36,8 @@ Whether you're building full-stack dapps or agents, this template gives you a so
 - [🧠 GitHub Copilot Integration](#-github-copilot-integration)
 - [🔗 Resources & Documentation](#-learning-resources)
 - [📩 Submit Your Project!](#-submit-your-project)
+
+> 💡 **Want to get started immediately?** See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide!
 
 ---
 
@@ -84,38 +87,85 @@ ollama run llama3.1:8b
 
 Once the command executes and the model is loaded, you can terminate it by typing /bye. You won't need to do this step again.
 
-### 4. Deployment
+### 4. Quick Setup (Recommended) 🚀
 
-Then, in one terminal window, run:
+**The fastest way to get everything running:**
+
+1. **Validate your environment** (optional but recommended):
+
+   ```bash
+   ./scripts/validate-environment.sh
+   ```
+
+2. **Copy the environment template**:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Edit `.env` and add your OpenWeatherMap API key** (optional):
+
+   ```bash
+   # Get a free key from https://openweathermap.org/api
+   OPENWEATHER_API_KEY=your_actual_api_key_here
+   ```
+
+4. **Run the complete deployment script**:
+   ```bash
+   ./scripts/deploy-all.sh
+   ```
+
+This single script will:
+
+- ✅ Install all dependencies (npm, mops)
+- ✅ Start dfx and deploy all canisters
+- ✅ Configure the agent registry system
+- ✅ Setup weather API (if key provided)
+- ✅ Run integration tests
+- ✅ Display all canister URLs and test commands
+
+**Script options:**
 
 ```bash
+./scripts/deploy-all.sh --help          # Show help
+./scripts/deploy-all.sh --skip-weather  # Skip weather API setup
+./scripts/deploy-all.sh --skip-tests    # Skip integration tests
+```
+
+### 5. Manual Setup (Alternative)
+
+If you prefer to run each step manually:
+
+#### 5.1. Start dfx and Deploy
+
+#### 5.1. Start dfx and Deploy
+
+```bash
+# Start dfx
 dfx start --clean
-```
 
-Keep this tab open for reading logs.
+# Install dependencies
+npm install
+mops install
 
-Then pull the dependency and deploy the canisters in another window:
-
-```bash
-dfx deploy # deploys the backend and frontend canisters
-```
-
-```bash
+# Deploy LLM dependencies
 dfx deps pull
-dfx deps deploy  # deploys the llm canister
+dfx deps deploy
+
+# Deploy main canisters
+dfx deploy
 ```
 
-### 5. Start the Development Server
+#### 5.2. Start the Development Server
 
 You can start the frontend development server with:
 
 ```bash
 # Just the frontend development server
 npm start
-
 ```
 
-### 6. Configure Weather Agent (Optional)
+#### 5.3. Configure Weather Agent (Optional)
 
 The template includes a weather agent that can fetch live weather data and provide clothing recommendations. To enable this feature:
 
@@ -148,7 +198,58 @@ The template includes a weather agent that can fetch live weather data and provi
    dfx canister call backend is_weather_api_configured '()'
    ```
 
-### 7. Run Tests
+#### 5.4. Configure Agent Interactions (Optional)
+
+The template uses a centralized **AgentRegistry canister** that manages all agent canister mappings and enables seamless inter-agent communication:
+
+1. **Deploy the agents**:
+
+   ```bash
+   # Deploy all agent components (registry is included)
+   dfx deploy agent-registry
+   dfx deploy agent-airquality_agent
+   dfx deploy agent-planner_agent
+   ```
+
+2. **Configure agent mappings** (using the automated script):
+
+   ```bash
+   # Setup the complete agent registry system
+   ./scripts/setup-agent-registry.sh setup-registry
+
+   # Configure agent mappings
+   ./scripts/setup-agent-registry.sh set-airquality $(dfx canister id agent-airquality_agent)
+
+   # Connect planner to registry
+   ./scripts/setup-agent-registry.sh configure-planner $(dfx canister id agent-registry)
+   ```
+
+3. **Manual configuration** (alternative approach):
+
+   ```bash
+   # Set agent canister IDs in registry
+   dfx canister call agent-registry setAgentCanister '(variant { airquality_agent }, "'$(dfx canister id agent-airquality_agent)'")'
+
+   # Configure planner to use registry
+   dfx canister call agent-planner_agent setAgentRegistryCanister "(\"$(dfx canister id agent-registry)\")"
+   ```
+
+4. **Test the agent integration**:
+
+   ```bash
+   # Check current agent registry status
+   ./scripts/setup-agent-registry.sh status
+
+   # Test air quality queries through the planner
+   ./scripts/setup-agent-registry.sh test
+
+   # Manual testing
+   dfx canister call agent-planner_agent execute_task '("How is the air quality in Jakarta?")'
+   ```
+
+The centralized AgentRegistry approach provides proper separation of concerns: the registry manages agent mappings while individual agents focus on their core functionality.
+
+#### 5.5. Run Tests
 
 ```bash
 npm test

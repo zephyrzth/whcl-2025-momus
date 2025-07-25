@@ -1,5 +1,6 @@
 import LLM "mo:llm";
 import AgentInterface "../../shared/AgentInterface";
+import AgentDiscoveryService "../../shared/AgentDiscoveryService";
 import Debug "mo:base/Debug";
 import Text "mo:base/Text";
 import Error "mo:base/Error";
@@ -8,6 +9,9 @@ import Json "mo:json";
 import Result "mo:base/Result";
 
 actor PlannerAgent {
+
+    // Use AgentDiscoveryService to interact with the registry
+    private let agentDiscovery = AgentDiscoveryService.AgentDiscoveryService("b77ix-eeaaa-aaaaa-qaada-cai");
 
     // Custom types for JSON parsing
     private type AgentInfo = {
@@ -31,7 +35,7 @@ actor PlannerAgent {
     public query func get_metadata() : async AgentInterface.AgentMetadata {
         {
             name = "Planner Agent";
-            description = "Routes user requests to weather_agent and/or airquality_agent using LLM analysis";
+            description = "Routes user requests to weather_agent and/or air_quality_agent using LLM analysis";
         };
     };
 
@@ -62,9 +66,17 @@ actor PlannerAgent {
                         if (agentInfo.name == "weather_agent") {
                             let weatherResponse = await dummy_weather_agent(agentInfo.refined_request);
                             responses := Array.append(responses, [{ refined_request = agentInfo.refined_request; response = weatherResponse }]);
-                        } else if (agentInfo.name == "airquality_agent") {
-                            let airQualityResponse = await dummy_airquality_agent(agentInfo.refined_request);
-                            responses := Array.append(responses, [{ refined_request = agentInfo.refined_request; response = airQualityResponse }]);
+                        } else if (agentInfo.name == "air_quality_agent") {
+                            let result = await agentDiscovery.executeAgentTask("air_quality_agent", agentInfo.refined_request);
+                            switch (result) {
+                                case (#ok(response)) {
+                                    responses := Array.append(responses, [{ refined_request = agentInfo.refined_request; response = response }]);
+                                };
+                                case (#err(error)) {
+                                    let errorResponse = "Error calling air quality agent: " # error;
+                                    responses := Array.append(responses, [{ refined_request = agentInfo.refined_request; response = errorResponse }]);
+                                };
+                            };
                         } else {
                             Debug.print("Unknown agent: " # agentInfo.name);
                         };
@@ -89,18 +101,13 @@ actor PlannerAgent {
         return "Weather in Jakarta is sunny with a temperature of 30°C.";
     };
 
-    private func dummy_airquality_agent(_prompt : Text) : async Text {
-        // Simulate a response from the air quality agent
-        return "Air quality in Jakarta is good with a PM2.5 level of 15 µg/m³.";
-    };
-
     private func run_planner(prompt : Text) : async Text {
 
         let systemPrompt = "You are a helpful assistant that routes user requests to the appropriate agents based on the content of the request" #
         "Also you need to refine the user request for more accurate request for specific agent" #
         "Currently we are able to handle 2 topics, weather and air quality." #
         "If the request is about weather, answer `weather_agent`." #
-        "If the request is about air quality, answer `airquality_agent`." #
+        "If the request is about air quality, answer `air_quality_agent`." #
         "It's possible the request is about all of the topics that we can handle" #
         "Please response it in the form of json format, { \"message\": \"success\", \"agents\": [ { \"name\": \"<agent_name>\", \"refined_request\": \"<refined_request>\" } ] }" #
         "If the request is not about any of the topics, please respond like this: { \"message\": \"no_agent\", \"agents\": [] }";
@@ -122,14 +129,14 @@ actor PlannerAgent {
                 content = "How is the air quality in Bandung?";
             }),
             #assistant({
-                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"airquality_agent\", \"refined_request\": \"What is the air quality like in Bandung?\" } ] }";
+                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"air_quality_agent\", \"refined_request\": \"What is the air quality like in Bandung?\" } ] }";
                 tool_calls = [];
             }),
             #user({
                 content = "How is today in Surabaya?";
             }),
             #assistant({
-                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"weather_agent\", \"refined_request\": \"What is the weather like today in Surabaya?\" }, { \"name\": \"airquality_agent\", \"refined_request\": \"What is the air quality like today in Surabaya?\" } ] }";
+                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"weather_agent\", \"refined_request\": \"What is the weather like today in Surabaya?\" }, { \"name\": \"air_quality_agent\", \"refined_request\": \"What is the air quality like today in Surabaya?\" } ] }";
                 tool_calls = [];
             }),
             #user({

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add set_count update method to allow setting the counter to a specific value
 - Add frontend development server scripts (`npm run start`)
 - Add LLM canister implementation
+- Add centralized AgentRegistry canister for proper separation of concerns
+- Add comprehensive deployment script that handles everything in one command
 
 ### Changed
 
@@ -28,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rewrote the npm scripts
 - Rewrote the e2e workflow
 - Fix mops installation in CI workflow by using npx
+- Refactor agent registry from embedded class to standalone canister for better architecture separation
 
 ## [0.1.0] - 2025-04-24
 
