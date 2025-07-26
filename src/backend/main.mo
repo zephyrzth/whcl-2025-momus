@@ -11,16 +11,17 @@ import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 import Json "mo:json";
 import Array "mo:base/Array";
+import Int "mo:base/Int";
 
-actor Main {
+persistent actor Main {
     // Counter variable to keep track of count
-    private stable var counter : Nat64 = 0;
+    private var counter : Nat64 = 0;
     
     // Weather API configuration
-    private stable var weatherApiKey : Text = "";
+    private var weatherApiKey : Text = "";
 
     // Canvas state storage
-    private stable var canvasState : ?CanvasState = null;
+    private var canvasState : ?CanvasState = null;
 
     // Type definition for the location response from LLM
     public type LocationResponse = {
@@ -28,6 +29,16 @@ actor Main {
         reason: Text;     // error reason or empty string for success
         city: Text;       // city name or empty string
         latlon: [Float];  // array of Float values [latitude, longitude]
+    };
+
+    // Type definition for parsed weather data from OpenWeatherMap API
+    public type ParsedWeatherData = {
+        description: Text;      // weather description from weather[0].description
+        temp: Float;           // temperature from main.temp
+        feels_like: Float;     // feels like temperature from main.feels_like
+        visibility: Nat;       // visibility in meters
+        wind_speed: Float;     // wind speed from wind.speed
+        city_name: Text;       // city name from name field
     };
 
     // Canvas data types for agent workflow
@@ -110,29 +121,6 @@ actor Main {
         weatherApiKey != ""
     };
 
-    // Test function to simulate weather API response for debugging
-    public func test_execute_task(prompt: Text) : async Text {
-        let locationData = await get_location_data_via_llm(prompt);
-        switch (locationData.message) {
-            case "success" {
-                if (locationData.city != "" or locationData.latlon.size() == 2) {
-                    // Simulate a weather response for testing
-                    let mockWeatherJson = "{\"main\":{\"temp\":28.5,\"humidity\":75},\"weather\":[{\"main\":\"Clear\",\"description\":\"clear sky\"}],\"wind\":{\"speed\":2.1}}";
-                    let weatherRecommendation = await get_weather_recommendation_via_llm(mockWeatherJson);
-                    return "✅ LOCATION: " # locationData.city # " | RECOMMENDATION: " # weatherRecommendation;
-                } else {
-                    "No valid location data provided";
-                };
-            };
-            case "failed" {
-                return "Failed to fetch weather data: " # locationData.reason;
-            };
-            case (_) {
-                return "Internal Error: Unable to process the request.";
-            };
-        };
-    };
-
     public func execute_task(prompt: Text) : async Text {
         let locationData = await get_location_data_via_llm(prompt);
         switch (locationData.message) {
@@ -143,8 +131,9 @@ actor Main {
                     let weatherData = await get_weather_via_http_outcall(locationData.city, "city");
                     _Debug.print("🔍 DEBUG: Weather data response: " # debug_show(weatherData));
                     switch (weatherData) {
-                        case (#ok(jsonText)) {
-                            // Process the JSON response and return it
+                        case (#ok(parsedData)) {
+                            // Convert parsed data to JSON string for LLM
+                            let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
                             let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
                             return weatherRecommendation; // Return the recommendation from LLM
                         };
@@ -158,8 +147,9 @@ actor Main {
                     let weatherData = await get_weather_via_http_outcall(latlonString, "coordinates");
                     _Debug.print("🔍 DEBUG: Weather data response: " # debug_show(weatherData));
                     switch (weatherData) {
-                        case (#ok(jsonText)) {
-                            // Process the JSON response and return it
+                        case (#ok(parsedData)) {
+                            // Convert parsed data to JSON string for LLM
+                            let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
                             let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
                             return weatherRecommendation; // Return the recommendation from LLM
                         };
@@ -180,88 +170,33 @@ actor Main {
         };
     };
 
-// Private helper function to get location data from user prompt via LLM with retry strategy
+    // Private helper function to get location data from user prompt via LLM with retry strategy
     private func get_location_data_via_llm(prompt: Text) : async LocationResponse {
         _Debug.print("🔍 DEBUG: Starting LLM location extraction for prompt: " # prompt);
         
         // Approach 5: Try multiple simpler calls with retry if first times out
         try {
-            _Debug.print("📞 DEBUG: Attempting first LLM call with simple prompt");
-            let simplePrompt = "Extract city name from this weather request and return JSON {\"city\":\"<cityname>\"}. Input: " # prompt;
-            let firstResponse = await LLM.prompt(#Llama3_1_8B, simplePrompt);
-            _Debug.print("✅ DEBUG: First LLM call succeeded: " # firstResponse);
-            
-            // Try to extract city from simple response
-            switch (Json.parse(firstResponse)) {
-                case (#ok(parsed)) {
-                    let cityResult = Json.getAsText(parsed, "city");
-                    switch (cityResult) {
-                        case (#ok(cityText)) {
-                            if (cityText != "") {
-                                _Debug.print("✅ DEBUG: Successfully extracted city: " # cityText);
-                                return {
-                                    message = "success";
-                                    reason = "";
-                                    city = cityText;
-                                    latlon = [];
-                                };
-                            };
-                        };
-                        case (#err(_)) {};
-                    };
-                };
-                case (#err(_)) {};
-            };
-            
-            // If simple parsing failed, fall back to original complex prompt
-            _Debug.print("🔄 DEBUG: Simple extraction failed, trying complex prompt");
-            let complexPrompt = "You are an intelligent assistant that can fetch location data from user's prompt, and return it in specified JSON format. " #
-                "Your task is to:
-" #
-                "1. Understand prompt from input, if it ask for a current weather info then continue to no 2. If it asking things other than weather related, continue to no 3.
-" #
-                "2. Fetch the city name or lat lon from the prompt, and continue to no. 4
-" #
-                "3. Return in specified JSON format  \"{ \"message\": \"failed\", \"reason\": \"I'm sorry, I can only provide current weather information.\", \"city\": \"\", \"latlon\": [] }\"\n" #
-                "4. Return the data in a specific JSON format { \"message\": \"success\", \"reason\": \"\", \"city\": \"<city name>\", \"latlon\": [ <lat>, <lon> ] }
-" #
-                "Now process this user input: " # prompt;
-            
-            let complexResponse = await LLM.prompt(#Llama3_1_8B, complexPrompt);
-            _Debug.print("✅ DEBUG: Complex LLM call succeeded: " # complexResponse);
+            _Debug.print("🔄 DEBUG: Trying structured prompt to get user's location");
+            let systemPrompt = "Extract location from User Input. Return UNFORMATTED RAW JSON ONLY with this format: {\"message\":\"success\",\"reason\":\"\",\"city\":\"<cityname>\",\"latlon\":[]}. No other text. User Input: " # prompt;
+            let llmResponse = await LLM.prompt(#Llama3_1_8B, systemPrompt);
+            _Debug.print("✅ DEBUG: Fetch Location LLM call succeeded: " # llmResponse);
             
             // Parse the complex LLM response
-            let parsedData = parse_llm_location_response(complexResponse);
+            let parsedData = parse_llm_location_response(llmResponse);
             _Debug.print("✅ DEBUG: Parsed data: " # debug_show(parsedData));
             parsedData;
             
         } catch (_error) {
-            _Debug.print("� DEBUG: All LLM approaches failed, using fallback");
-            // Final fallback: simple text parsing
-            if (Text.contains(Text.toLowercase(prompt), #text "jakarta")) {
-                return {
-                    message = "success";
-                    reason = "Fallback text parsing";
-                    city = "Jakarta";
-                    latlon = [];
-                };
-            } else if (Text.contains(Text.toLowercase(prompt), #text "weather")) {
-                return {
-                    message = "failed";
-                    reason = "Could not extract location from weather request";
-                    city = "";
-                    latlon = [];
-                };
-            } else {
-                return {
-                    message = "failed";
-                    reason = "Not a weather request";
-                    city = "";
-                    latlon = [];
-                };
+            return {
+                message = "failed";
+                reason = "Error fetching user location data from LLM";
+                city = "";
+                latlon = [];
             };
         };
-    };    // Helper function to parse LLM location response JSON
+    };
+    
+    // Helper function to parse LLM location response JSON
     private func parse_llm_location_response(_jsonResponse: Text) : LocationResponse {
         switch (Json.parse(_jsonResponse)) {
             case (#ok(parsed)) {
@@ -337,27 +272,9 @@ actor Main {
         };
     };
 
-        // Private helper function to get weather recommendation via LLM
+    // Private helper function to get weather recommendation via LLM
     private func get_weather_recommendation_via_llm(weatherJsonResponse: Text) : async Text {
-        let fullPrompt = "You are a friendly, humorous intelligent clothing recommendation agent. " #
-            "Analyze the OpenWeatherMap JSON response and provide clothing recommendations." #
-            "Key fields to look for:" #
-            "• main.temp = Current temperature (Celsius)" #
-            "• main.humidity = Humidity percentage" #
-            "• weather[0].description = Weather description" #
-            "• weather[0].main = Weather type (Rain, Snow, Clear, etc.)" #
-            "• wind.speed = Wind speed (m/s)" #
-            "• clouds.all = Cloud coverage percentage" #
-            "Clothing Rules:" #
-            "• <10°C: Heavy coat, warm clothes, gloves" #
-            "• 10-20°C: Jacket or sweater" #
-            "• 20-25°C: Light jacket or long sleeves" #
-            "• >25°C: Light, breathable clothing" #
-            "• Rain: Umbrella/raincoat" #
-            "• Sunny: Sunscreen, hat, sunglasses" #
-            "• High humidity (>80%): Moisture-wicking fabrics" #
-            "Respond conversationally and explain your reasoning." #
-            "Weather data: " # weatherJsonResponse;
+        let fullPrompt = "Give brief information about the current weather in the location, and clothing advice based on weather data. Respond in 2-3 lines max. Weather JSON: " # weatherJsonResponse;
 
         try {
             // Use LLM.prompt instead of LLM.chat for potentially better timeout handling
@@ -368,8 +285,8 @@ actor Main {
         };
     };
 
-    // HTTP outcall method to fetch raw weather JSON from OpenWeatherMap API
-    public func get_weather_via_http_outcall(location: Text, locationType: Text) : async Result.Result<Text, Text> {
+    // HTTP outcall method to fetch weather data from OpenWeatherMap API and return parsed structure
+    public func get_weather_via_http_outcall(location: Text, locationType: Text) : async Result.Result<ParsedWeatherData, Text> {
         // Check if API key is configured
         if (weatherApiKey == "") {
             return #err("API key not configured");
@@ -406,11 +323,12 @@ actor Main {
             let response = await ic.http_request(request);
             
             if (response.status == 200) {
-                // Return the raw JSON response
+                // Parse the JSON response and return structured data
                 let responseText = Text.decodeUtf8(Blob.fromArray(response.body));
                 switch (responseText) {
                     case (?text) {
-                        #ok(text); // Return raw JSON as-is
+                        let parsedData = parse_weather_response(text);
+                        #ok(parsedData); // Return parsed structured data
                     };
                     case null {
                         #err("Failed to decode response");
@@ -421,6 +339,120 @@ actor Main {
             };
         } catch (_error) {
             #err("Network error occurred");
+        };
+    };
+
+    // New function that returns parsed weather data
+    public func get_parsed_weather_data(location: Text, locationType: Text) : async Result.Result<ParsedWeatherData, Text> {
+        await get_weather_via_http_outcall(location, locationType);
+    };
+
+    // Private helper function to parse OpenWeatherMap API response
+    private func parse_weather_response(jsonResponse: Text) : ParsedWeatherData {
+        switch (Json.parse(jsonResponse)) {
+            case (#ok(parsed)) {
+                // Extract weather description from weather[0].description
+                let description = switch (Json.getAsArray(parsed, "weather")) {
+                    case (#ok(weatherArray)) {
+                        if (weatherArray.size() > 0) {
+                            switch (Json.getAsText(weatherArray[0], "description")) {
+                                case (#ok(desc)) desc;
+                                case (#err(_)) "";
+                            };
+                        } else {
+                            "";
+                        };
+                    };
+                    case (#err(_)) "";
+                };
+
+                // Extract temperature from main.temp
+                let temp = switch (Json.getAsObject(parsed, "main")) {
+                    case (#ok(mainObj)) {
+                        // mainObj is [(Text, Json)], need to find temp field
+                        var tempValue : Float = 0.0;
+                        for ((key, value) in mainObj.vals()) {
+                            if (key == "temp") {
+                                switch (value) {
+                                    case (#number(#float(f))) { tempValue := f; };
+                                    case (#number(#int(i))) { tempValue := Float.fromInt(i); };
+                                    case (_) {};
+                                };
+                            };
+                        };
+                        tempValue;
+                    };
+                    case (#err(_)) 0.0;
+                };
+
+                // Extract feels_like from main.feels_like
+                let feels_like = switch (Json.getAsObject(parsed, "main")) {
+                    case (#ok(mainObj)) {
+                        var feelsValue : Float = 0.0;
+                        for ((key, value) in mainObj.vals()) {
+                            if (key == "feels_like") {
+                                switch (value) {
+                                    case (#number(#float(f))) { feelsValue := f; };
+                                    case (#number(#int(i))) { feelsValue := Float.fromInt(i); };
+                                    case (_) {};
+                                };
+                            };
+                        };
+                        feelsValue;
+                    };
+                    case (#err(_)) 0.0;
+                };
+
+                // Extract visibility
+                let visibility : Nat = switch (Json.getAsInt(parsed, "visibility")) {
+                    case (#ok(visValue)) Int.abs(visValue);
+                    case (#err(_)) 0;
+                };
+
+                // Extract wind speed from wind.speed
+                let wind_speed = switch (Json.getAsObject(parsed, "wind")) {
+                    case (#ok(windObj)) {
+                        var speedValue : Float = 0.0;
+                        for ((key, value) in windObj.vals()) {
+                            if (key == "speed") {
+                                switch (value) {
+                                    case (#number(#float(f))) { speedValue := f; };
+                                    case (#number(#int(i))) { speedValue := Float.fromInt(i); };
+                                    case (_) {};
+                                };
+                            };
+                        };
+                        speedValue;
+                    };
+                    case (#err(_)) 0.0;
+                };
+
+                // Extract city name
+                let city_name = switch (Json.getAsText(parsed, "name")) {
+                    case (#ok(nameValue)) nameValue;
+                    case (#err(_)) "";
+                };
+
+                {
+                    description = description;
+                    temp = temp;
+                    feels_like = feels_like;
+                    visibility = visibility;
+                    wind_speed = wind_speed;
+                    city_name = city_name;
+                };
+            };
+            case (#err(_)) {
+                // Return default values if JSON parsing fails
+                {
+                    description = "";
+                    temp = 0.0;
+                    feels_like = 0.0;
+                    visibility = 0;
+                    wind_speed = 0.0;
+                    city_name = "";
+                };
+            };
         };
     };
 
@@ -460,44 +492,10 @@ actor Main {
         };
     };
 
-    // Debug function to see the actual HTTP response
-    public func debug_weather_response(location: Text) : async Text {
-        if (weatherApiKey == "") {
-            return "API key not configured";
-        };
-
-        let ic : IC = actor ("aaaaa-aa");
-        let url = "https://api.openweathermap.org/data/2.5/weather?q=" # location # "&appid=" # weatherApiKey # "&units=metric";
-
-        let request : HttpRequestArgs = {
-            url = url;
-            max_response_bytes = ?2048;
-            headers = [];
-            body = null;
-            method = #get;
-            transform = null;
-        };
-
-        try {
-            Cycles.add<system>(230_949_972_000);
-            let response = await ic.http_request(request);
-            
-            if (response.status == 200) {
-                let responseText = Text.decodeUtf8(Blob.fromArray(response.body));
-                switch (responseText) {
-                    case (?text) {
-                        text; // Return the actual JSON response
-                    };
-                    case null {
-                        "Failed to decode response";
-                    };
-                };
-            } else {
-                "HTTP request failed with status: " # Nat.toText(response.status);
-            };
-        } catch (_error) {
-            "Network error occurred";
-        };
+    // Test function to verify weather parsing works (for debugging/testing)
+    public func test_weather_parsing() : async ParsedWeatherData {
+        let sampleJson = "{\"coord\":{\"lon\":106.8451,\"lat\":-6.2146},\"weather\":[{\"id\":800,\"main\":\"Clear\",\"description\":\"clear sky\",\"icon\":\"01d\"}],\"base\":\"stations\",\"main\":{\"temp\":34.43,\"feels_like\":41.43,\"temp_min\":34.43,\"temp_max\":34.43,\"pressure\":1008,\"humidity\":56,\"sea_level\":1008,\"grnd_level\":1005},\"visibility\":10000,\"wind\":{\"speed\":4.67,\"deg\":16,\"gust\":3.5},\"clouds\":{\"all\":9},\"dt\":1753519835,\"sys\":{\"country\":\"ID\",\"sunrise\":1753484656,\"sunset\":1753527223},\"timezone\":25200,\"id\":1642911,\"name\":\"Jakarta\",\"cod\":200}";
+        parse_weather_response(sampleJson);
     };
 
     // Canvas state management functions

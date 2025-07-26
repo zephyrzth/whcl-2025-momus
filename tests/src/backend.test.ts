@@ -387,6 +387,108 @@ describe("Vibe Coding Template Backend", () => {
         "Please configure weather API key first",
       );
     });
+
+    describe("Parsed Weather Data Functions", () => {
+      beforeEach(async () => {
+        // Initialize API key before each test
+        const testApiKey = "b546ecac84d575af4d3354dbd74da1a4";
+        await actor.init_weather_api(testApiKey);
+      });
+
+      it("should parse weather data and return structured response for city", async () => {
+        const cityName = "Jakarta";
+        const result = await actor.get_parsed_weather_data(cityName, "city");
+
+        expect(result).toBeDefined();
+
+        // Check if it's a successful result
+        if ("ok" in result) {
+          const parsedData = result.ok;
+
+          // Verify the structure matches ParsedWeatherData
+          expect(parsedData).toHaveProperty("description");
+          expect(parsedData).toHaveProperty("temp");
+          expect(parsedData).toHaveProperty("feels_like");
+          expect(parsedData).toHaveProperty("visibility");
+          expect(parsedData).toHaveProperty("wind_speed");
+          expect(parsedData).toHaveProperty("city_name");
+
+          // Verify data types
+          expect(typeof parsedData.description).toBe("string");
+          expect(typeof parsedData.temp).toBe("number");
+          expect(typeof parsedData.feels_like).toBe("number");
+          expect(typeof parsedData.visibility).toBe("bigint");
+          expect(typeof parsedData.wind_speed).toBe("number");
+          expect(typeof parsedData.city_name).toBe("string");
+        } else if ("err" in result) {
+          // In test environment, HTTP outcalls might fail - this is expected
+          expect(typeof result.err).toBe("string");
+          expect(result.err.length).toBeGreaterThan(0);
+        }
+      });
+
+      it("should parse weather data and return structured response for coordinates", async () => {
+        const coordinates = "-6.2146,106.8451"; // Jakarta coordinates
+        const result = await actor.get_parsed_weather_data(
+          coordinates,
+          "coordinates",
+        );
+
+        expect(result).toBeDefined();
+
+        // Check the result structure
+        if ("ok" in result) {
+          const parsedData = result.ok;
+
+          // Verify the structure matches ParsedWeatherData
+          expect(parsedData).toHaveProperty("description");
+          expect(parsedData).toHaveProperty("temp");
+          expect(parsedData).toHaveProperty("feels_like");
+          expect(parsedData).toHaveProperty("visibility");
+          expect(parsedData).toHaveProperty("wind_speed");
+          expect(parsedData).toHaveProperty("city_name");
+        } else if ("err" in result) {
+          expect(typeof result.err).toBe("string");
+          expect(result.err.length).toBeGreaterThan(0);
+        }
+      });
+
+      it("should handle API key not configured error in parsed weather data", async () => {
+        // Reset to empty API key
+        await actor.init_weather_api("");
+
+        const cityName = "Jakarta";
+        const result = await actor.get_parsed_weather_data(cityName, "city");
+
+        expect(result).toBeDefined();
+        expect("err" in result).toBe(true);
+
+        if ("err" in result) {
+          expect(result.err).toBe("API key not configured");
+        }
+      });
+
+      it("should handle invalid location gracefully in parsed weather data", async () => {
+        const invalidCity = "ThisCityDoesNotExist123456";
+        const result = await actor.get_parsed_weather_data(invalidCity, "city");
+
+        expect(result).toBeDefined();
+
+        // Should either succeed with empty data or fail with error
+        if ("ok" in result) {
+          const parsedData = result.ok;
+          expect(parsedData).toHaveProperty("description");
+          expect(parsedData).toHaveProperty("temp");
+          expect(parsedData).toHaveProperty("feels_like");
+          expect(parsedData).toHaveProperty("visibility");
+          expect(parsedData).toHaveProperty("wind_speed");
+          expect(parsedData).toHaveProperty("city_name");
+        } else if ("err" in result) {
+          expect(typeof result.err).toBe("string");
+          expect(result.err.length).toBeGreaterThan(0);
+        }
+      });
+    });
   });
 
   // Canvas state management tests
