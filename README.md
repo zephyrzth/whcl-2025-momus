@@ -1,263 +1,301 @@
-# 🧪🔥 Ultimate IC Vibe Coding Template
+# � MOMUS - Multi-Agent Orchestration Platform
 
-## 👋 Welcome to the Ultimate IC Vibe Coding Template!
+## Overview
 
-This production-ready template powers your Internet Computer development with a complete stack featuring Motoko backend, React frontend, and integrated LLM capabilities. Built for professional developers seeking a fast path from concept to deployment, with testing and CI/CD built-in.
+**MOMUS** is a production-ready, decentralized AI agent orchestration and marketplace platform built on the Internet Computer Protocol (ICP). It provides a sophisticated framework for deploying, managing, and coordinating multiple AI agents with real-time capabilities, external API integrations, and advanced workflow orchestration.
 
-Start building high-performance dapps in minutes, not days.
+### Key Features
 
-## Welcome! 👋
-
-This repository offers a high-quality, production-ready template to jumpstart your Internet Computer (ICP) development.
-
-It includes:
-
-- 💻 **Motoko-based Canister** backend
-- 🔥 **React + Tailwind + Typescript** frontend
-- 🧠 **IC LLM Canister** integration for Agentic workflows
-- 🧪 **Full Test Suite**: Vitest + PocketIC for backend and frontend
-- 🔁 **CI/CD** with GitHub Actions for automated tests and code quality
-- 🤖 **Copilot Integration** to auto-generate tests, code, and changelogs
-
-Whether you're building full-stack dapps or agents, this template gives you a solid foundation to start fast and scale smoothly. 🚀
-
-![Template Screenshot](.github/assets/template-screenshot.png)
+- **🏗️ Multi-Agent Architecture**: Modular agent system with specialized capabilities (Weather, Air Quality, Planning)
+- **🛒 AI Agent Marketplace**: Decentralized marketplace for discovering, deploying, and monetizing AI agents
+- **🧠 LLM Integration**: Powered by Llama 3.1 8B for intelligent agent responses and task coordination
+- **🌐 External API Integration**: HTTP outcalls for real-time data (OpenWeatherMap, Air Quality APIs)
+- **📊 Centralized Registry**: Dynamic agent discovery and communication routing
+- **🎨 Interactive Canvas**: Visual workflow builder for agent orchestration
+- **⚡ Production-Ready**: Full test coverage, CI/CD, type safety, error handling
+- **🔧 Developer Experience**: Hot reload, comprehensive tooling, GitHub Copilot integration
 
 ---
 
-## 📜 Table of Contents
+## 🏛️ System Architecture
 
-- [🚀 Quick Start Guide (5 minutes!)](#-quick-setup-recommended-)
-- [🎥 Recording](#-recording)
-- [🚀 Getting Started](#-getting-started)
-- [📁 Project Structure](#-project-structure)
-- [✅ Testing Patterns](#-testing-patterns)
-- [🔄 CI/CD Workflow](#-cicd-workflow)
-- [🧠 GitHub Copilot Integration](#-github-copilot-integration)
-- [🔗 Resources & Documentation](#-learning-resources)
-- [📩 Submit Your Project!](#-submit-your-project)
+### High-Level Architecture
 
-> 💡 **Want to get started immediately?** See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide!
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        UI[React Frontend<br/>Interactive Canvas]
+        UI --> Canvas[Agent Canvas<br/>Workflow Builder]
+    end
 
----
+    subgraph "Internet Computer Protocol"
+        subgraph "Core Services"
+            Backend[Backend Canister<br/>Main Orchestrator]
+            Registry[Agent Registry<br/>Service Discovery]
+        end
 
-## 🎥 Recording
+        subgraph "Agent Layer"
+            Weather[Weather Agent<br/>OpenWeatherMap API]
+            AirQuality[Air Quality Agent<br/>Environmental Data]
+            Planner[Planner Agent<br/>Task Coordination]
+        end
 
-There was an Advanced Challenge Lab session, that was recorded and had a lot of information and showcase of Vibe Coding using a similar template in Rust.
-Even in Rust the core logic and add-ons to this template are the same.
+        subgraph "Infrastructure"
+            LLM[LLM Canister<br/>Llama 3.1 8B]
+            ApiKeys[API Key Service<br/>Secure Storage]
+        end
+    end
 
-You can see here the full recording: https://www.youtube.com/watch?v=ZuNUy13wmlI
+    subgraph "External Services"
+        OpenWeather[OpenWeatherMap API]
+        AirAPI[Air Quality APIs]
+        Ollama[Ollama Server<br/>Local LLM]
+    end
 
----
+    UI --> Backend
+    Backend --> Registry
+    Registry --> Weather
+    Registry --> AirQuality
+    Registry --> Planner
 
-## 🚀 Getting Started
+    Weather --> ApiKeys
+    AirQuality --> ApiKeys
 
-### 🧑‍💻 1. Get Codespace Ready
+    Weather --> LLM
+    AirQuality --> LLM
+    Planner --> LLM
 
-A **devcontainer** is preconfigured for you to start coding instantly!
+    LLM --> Ollama
 
-- Click on "Use this Template" → "Create a new repository".
-- Click "Code → Open with Codespaces"
-- Change machine type to 4-core 16GB RAM • 32GB
-- Once the codespace is created, you can open it in VS Code Local
-- Everything is pre-installed and ready for you to run the following commands
+    Weather --> OpenWeather
+    AirQuality --> AirAPI
 
-### 2. Install Dependencies
-
-```bash
-npm install
-mops install
+    style UI fill:#e1f5fe
+    style Backend fill:#f3e5f5
+    style Registry fill:#fff3e0
+    style Weather fill:#e8f5e8
+    style AirQuality fill:#e8f5e8
+    style Planner fill:#e8f5e8
+    style LLM fill:#fce4ec
 ```
 
-### 3. Running Ollama
+### Agent Communication Flow
 
-To be able to test the agent locally, you'll need a server for processing the agent's prompts. For that, we'll use `ollama`, which is a tool that can download and serve LLMs.
-See the documentation on the [Ollama website](https://ollama.com/). Run:
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Registry
+    participant WeatherAgent
+    participant LLM
+    participant OpenWeather
+
+    User->>Frontend: Request weather for London
+    Frontend->>Backend: execute_task("weather in London")
+    Backend->>Registry: getAgentCanister(weather_agent)
+    Registry-->>Backend: weather_agent_canister_id
+
+    Backend->>WeatherAgent: execute_task("weather in London")
+    WeatherAgent->>LLM: extract_location("weather in London")
+    LLM-->>WeatherAgent: {city: "London", latlon: []}
+
+    WeatherAgent->>Registry: getApiKey("openweathermap")
+    Registry-->>WeatherAgent: api_key
+
+    WeatherAgent->>OpenWeather: HTTP GET weather data
+    OpenWeather-->>WeatherAgent: weather_json_response
+
+    WeatherAgent->>LLM: generate_recommendation(weather_data)
+    LLM-->>WeatherAgent: "Current weather in London..."
+
+    WeatherAgent-->>Backend: weather_recommendation
+    Backend-->>Frontend: response
+    Frontend-->>User: Display weather info
+```
+
+### Technical Stack
+
+```mermaid
+graph LR
+    subgraph "Frontend"
+        React[React 18]
+        TypeScript[TypeScript 5.8]
+        Tailwind[Tailwind CSS v4]
+        Vite[Vite 6.2]
+    end
+
+    subgraph "Backend"
+        Motoko[Motoko Language]
+        ICP[Internet Computer]
+        Candid[Candid Interface]
+    end
+
+    subgraph "AI/ML"
+        Llama[Llama 3.1 8B]
+        Ollama[Ollama Runtime]
+        JSON[JSON Parsing]
+    end
+
+    subgraph "Testing"
+        Vitest[Vitest Framework]
+        PocketIC[PocketIC Testing]
+        TestingLib[Testing Library]
+    end
+
+    subgraph "DevOps"
+        GitHub[GitHub Actions]
+        DFX[DFX CLI]
+        Mops[Mops Package Manager]
+    end
+
+    React --> TypeScript
+    TypeScript --> Tailwind
+    Tailwind --> Vite
+
+    Motoko --> ICP
+    ICP --> Candid
+
+    Llama --> Ollama
+    Ollama --> JSON
+
+    Vitest --> PocketIC
+    PocketIC --> TestingLib
+
+    GitHub --> DFX
+    DFX --> Mops
+```
+
+---
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+
+- **Node.js** 18+ and npm
+- **DFX** 0.15+ (Internet Computer SDK)
+- **Ollama** (for local LLM development)
+- **Git** for version control
+
+### 1. Environment Setup
 
 ```bash
+# Clone and setup
+git clone <repository-url>
+cd momus-platform
+npm install
+mops install
+
+# Start Ollama server (required for LLM functionality)
 ollama serve
-# Expected to start listening on port 11434
+ollama run llama3.1:8b  # Download model (one-time setup)
 ```
 
-The above command will start the Ollama server, so that it can process requests by the agent. Additionally, and in a separate window, run the following command to download the LLM that will be used by the agent:
+### 2. Complete Deployment
 
 ```bash
-ollama run llama3.1:8b
+# One-command deployment
+./scripts/deploy-all.sh
+
+# This script will:
+# ✅ Install dependencies
+# ✅ Deploy all canisters
+# ✅ Configure agent registry
+# ✅ Setup API integrations
+# ✅ Run integration tests
 ```
 
-Once the command executes and the model is loaded, you can terminate it by typing /bye. You won't need to do this step again.
-
-### 4. Quick Setup (Recommended) 🚀
-
-**The fastest way to get everything running:**
-
-1. **Validate your environment** (optional but recommended):
-
-   ```bash
-   ./scripts/validate-environment.sh
-   ```
-
-2. **Copy the environment template**:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Edit `.env` and add your OpenWeatherMap API key** (optional):
-
-   ```bash
-   # Get a free key from https://openweathermap.org/api
-   OPENWEATHER_API_KEY=your_actual_api_key_here
-   ```
-
-4. **Run the complete deployment script**:
-   ```bash
-   ./scripts/deploy-all.sh
-   ```
-
-This single script will:
-
-- ✅ Install all dependencies (npm, mops)
-- ✅ Start dfx and deploy all canisters
-- ✅ Configure the agent registry system
-- ✅ Setup weather API (if key provided)
-- ✅ Run integration tests
-- ✅ Display all canister URLs and test commands
-
-**Script options:**
+### 3. Development Server
 
 ```bash
-./scripts/deploy-all.sh --help          # Show help
-./scripts/deploy-all.sh --skip-weather  # Skip weather API setup
-./scripts/deploy-all.sh --skip-tests    # Skip integration tests
-```
-
-### 5. Manual Setup (Alternative)
-
-If you prefer to run each step manually:
-
-#### 5.1. Start dfx and Deploy
-
-#### 5.1. Start dfx and Deploy
-
-```bash
-# Start dfx
-dfx start --clean
-
-# Install dependencies
-npm install
-mops install
-
-# Deploy LLM dependencies
-dfx deps pull
-dfx deps deploy
-
-# Deploy main canisters
-dfx deploy
-```
-
-#### 5.2. Start the Development Server
-
-You can start the frontend development server with:
-
-```bash
-# Just the frontend development server
+# Start frontend development
 npm start
+
+# Access application
+open http://localhost:5173
 ```
 
-#### 5.3. Configure Weather Agent (Optional)
+---
 
-The template includes a weather agent that can fetch live weather data and provide clothing recommendations. To enable this feature:
+## 🔧 API Documentation
 
-1. **Get an OpenWeatherMap API key**:
-   - Visit [OpenWeatherMap API](https://openweathermap.org/api)
-   - Sign up for a free account
-   - Generate an API key
+### Core Canister Interfaces
 
-2. **Configure the weather agent**:
+#### Backend Canister
 
-   ```bash
-   # Use the setup script (recommended)
-   ./scripts/setup-weather-api.sh YOUR_API_KEY_HERE
+```motoko
+// Main orchestration functions
+public func greet(name: Text) : async Text
+public query func get_count() : async Nat64
+public func execute_agent_workflow(nodes: [AgentNode], connections: [AgentConnection]) : async Text
 
-   # Or manually call the canister
-   dfx canister call backend init_weather_api '("YOUR_API_KEY_HERE")'
-   ```
-
-3. **Test the weather agent**:
-
-   ```bash
-   # Get weather by city name
-   dfx canister call backend get_weather_with_recommendations '("London")'
-
-   # Get weather by coordinates (latitude, longitude)
-   dfx canister call backend get_weather_by_coordinates '(51.5074, -0.1278)'
-
-   # Check if API is configured
-   dfx canister call backend is_weather_api_configured '()'
-   ```
-
-#### 5.4. Configure Agent Interactions (Optional)
-
-The template uses a centralized **AgentRegistry canister** that manages all agent canister mappings and enables seamless inter-agent communication:
-
-1. **Deploy the agents**:
-
-   ```bash
-   # Deploy all agent components (registry is included)
-   dfx deploy agent-registry
-   dfx deploy agent-airquality_agent
-   dfx deploy agent-planner_agent
-   ```
-
-2. **Configure agent mappings** (using the automated script):
-
-   ```bash
-   # Setup the complete agent registry system
-   ./scripts/setup-agent-registry.sh setup-registry
-
-   # Configure agent mappings
-   ./scripts/setup-agent-registry.sh set-airquality $(dfx canister id agent-airquality_agent)
-
-   # Connect planner to registry
-   ./scripts/setup-agent-registry.sh configure-planner $(dfx canister id agent-registry)
-   ```
-
-3. **Manual configuration** (alternative approach):
-
-   ```bash
-   # Set agent canister IDs in registry
-   dfx canister call agent-registry setAgentCanister '(variant { airquality_agent }, "'$(dfx canister id agent-airquality_agent)'")'
-
-   # Configure planner to use registry
-   dfx canister call agent-planner_agent setAgentRegistryCanister "(\"$(dfx canister id agent-registry)\")"
-   ```
-
-4. **Test the agent integration**:
-
-   ```bash
-   # Check current agent registry status
-   ./scripts/setup-agent-registry.sh status
-
-   # Test air quality queries through the planner
-   ./scripts/setup-agent-registry.sh test
-
-   # Manual testing
-   dfx canister call agent-planner_agent execute_task '("How is the air quality in Jakarta?")'
-   ```
-
-The centralized AgentRegistry approach provides proper separation of concerns: the registry manages agent mappings while individual agents focus on their core functionality.
-
-#### 5.5. Run Tests
-
-```bash
-npm test
+// Canvas state management
+public func save_canvas_state(state: CanvasState) : async ()
+public query func get_canvas_state() : async ?CanvasState
 ```
 
-You can also run:
+#### Agent Registry
+
+```motoko
+// Agent discovery and management
+public func setAgentCanister(agentType: AgentType, canisterId: Text) : async ()
+public query func getAgentCanister(agentType: AgentType) : async ?Text
+public func setApiKey(service: Text, key: Text) : async ()
+public query func getApiKey(service: Text) : async ?Text
+```
+
+#### Weather Agent
+
+```motoko
+// Weather information services
+public func execute_task(prompt: Text) : async Text
+public func is_weather_api_configured() : async Bool
+public query func get_metadata() : async AgentMetadata
+
+// Internal data types
+public type LocationResponse = {
+    message: Text;    // "success" or "failed"
+    reason: Text;     // error reason
+    city: Text;       // extracted city name
+    latlon: [Float];  // [latitude, longitude]
+};
+
+public type ParsedWeatherData = {
+    description: Text;    // weather condition
+    temp: Float;         // temperature (°C)
+    feels_like: Float;   // apparent temperature
+    visibility: Nat;     // visibility (meters)
+    wind_speed: Float;   // wind speed (m/s)
+    city_name: Text;     // location name
+};
+```
+
+### HTTP Endpoints
+
+#### Weather Agent Integration
 
 ```bash
-npm test tests/src/backend.test.ts    # individual test
+# Get weather by city name
+dfx canister call agent-weather_agent execute_task '("What is the weather in London?")'
+
+# Check API configuration
+dfx canister call agent-weather_agent is_weather_api_configured '()'
+
+# Configure API key via registry
+dfx canister call agent-registry setApiKey '("openweathermap", "your_api_key_here")'
+```
+
+#### Agent Registry Operations
+
+```bash
+# Register new agent
+dfx canister call agent-registry setAgentCanister '(variant { weather_agent }, "canister_id_here")'
+
+# Query available agents
+dfx canister call agent-registry getAgentCanister '(variant { weather_agent })'
+
+# Test agent communication
+dfx canister call agent-planner_agent execute_task '("Get weather for Tokyo and air quality for Beijing")'
 ```
 
 ---
@@ -265,41 +303,451 @@ npm test tests/src/backend.test.ts    # individual test
 ## 📁 Project Structure
 
 ```
-ICP-Bootcamp-Vibe-Coding/
-├── .devcontainer/devcontainer.json       # Container config for running your own codespace
-├── .github/instructions/                 # Copilot general and language specific instructions
-├── .github/prompts/                      # Copilot Prompts, like add feature and changes review
-├── .github/workflows/                    # GitHub CI/CD pipelines
-├── src/
-│   ├── backend/                          # Motoko backend canister
-│   │   └── main.mo                       # Main Motoko file
-│   ├── frontend/                         # React + Tailwind + TypeScript frontend
+momus-platform/
+├── 🏗️ Infrastructure
+│   ├── .devcontainer/           # Development container configuration
+│   ├── .github/
+│   │   ├── instructions/        # AI coding guidelines and context
+│   │   ├── prompts/            # Workflow automation prompts
+│   │   └── workflows/          # CI/CD automation
+│   ├── scripts/                # Deployment and setup automation
+│   ├── dfx.json               # ICP canister configuration
+│   └── mops.toml              # Motoko package management
+│
+├── 🧠 Agent System
+│   ├── src/agents/
+│   │   ├── agent_registry/     # Central agent discovery service
+│   │   │   └── main.mo        # Registry implementation
+│   │   ├── weather_agent/     # Weather information service
+│   │   │   └── main.mo        # Weather + LLM integration
+│   │   ├── airquality_agent/  # Air quality monitoring
+│   │   │   └── main.mo        # Environmental data service
+│   │   └── planner_agent/     # Task coordination service
+│   │       └── main.mo        # Multi-agent orchestration
+│   │
+│   ├── src/shared/            # Common interfaces and types
+│   │   ├── AgentInterface.mo  # Standard agent contract
+│   │   └── AgentRegistryInterface.mo
+│   │
+│   └── src/services/          # Shared business logic
+│       ├── AgentDiscoveryService.mo
+│       └── ApiKeyService.mo   # Secure credential management
+│
+├── 🎨 Frontend Application
+│   ├── src/frontend/
 │   │   ├── src/
-│   │   │   ├── App.tsx                   # Main App component
-│   │   │   ├── index.css                 # Global styles with Tailwind
-│   │   │   ├── components/               # Reusable UI components
-│   │   │   ├── services/                 # Canister service layers
-│   │   │   └── views/                    # Page-level components
-│   │   ├── assets/                       # Static assets (images, icons)
-│   │   ├── tests/                        # Frontend unit tests
-│   │   ├── index.html                    # Frontend entry point
-│   │   ├── main.tsx                      # React main file
-│   │   ├── package.json                  # Frontend dependencies
-│   │   ├── tsconfig.json                 # TypeScript configuration
-│   │   ├── vite.config.ts                # Vite build configuration
-│   │   └── vite-env.d.ts                 # Vite type definitions
-│   └── declarations/                     # Auto-generated canister interfaces
-├── tests/
-│   ├── src/                              # Backend test files
-│   ├── backend-test-setup.ts             # PocketIC instance
-│   └── vitest.config.ts                  # Vitest configuration
-├── scripts/
-│   ├── dev-container-setup.sh            # Extra set up steps for codespace
-│   └── generate-candid.sh                # Useful one way script to build, generate candid and did files
-├── dfx.json                              # ICP config
-├── mops.toml                             # Root Motoko package config
-└── CHANGELOG.md
+│   │   │   ├── components/    # Reusable UI components
+│   │   │   │   ├── nodes/     # Canvas node components
+│   │   │   │   ├── ui/        # Base UI elements
+│   │   │   │   ├── AgentCard.tsx
+│   │   │   │   ├── Button.tsx
+│   │   │   │   └── NavigationBar.tsx
+│   │   │   ├── services/      # Canister integration layer
+│   │   │   │   ├── agentExecutionService.ts
+│   │   │   │   └── canvasService.ts
+│   │   │   ├── types/         # TypeScript definitions
+│   │   │   ├── views/         # Page-level components
+│   │   │   └── App.tsx        # Main application
+│   │   ├── tests/             # Frontend unit tests
+│   │   ├── index.html         # Application entry point
+│   │   ├── vite.config.ts     # Build configuration
+│   │   └── package.json       # Frontend dependencies
+│   │
+│   └── src/declarations/      # Auto-generated canister bindings
+│       ├── backend/           # Backend canister types
+│       ├── agent-registry/    # Registry canister types
+│       └── agent-*/           # Individual agent types
+│
+├── 🧪 Testing Infrastructure
+│   ├── tests/
+│   │   ├── src/
+│   │   │   ├── backend.test.ts        # Backend integration tests
+│   │   │   └── weather_agent.test.ts  # Agent-specific tests
+│   │   └── vitest.config.ts           # Test configuration
+│   │
+│   └── src/frontend/tests/            # Frontend unit tests
+│       ├── App.test.tsx
+│       ├── services/
+│       └── views/
+│
+└── 📚 Documentation
+    ├── docs/                          # Technical documentation
+    │   ├── api-key-management.md
+    │   ├── canvas-backend-integration.md
+    │   └── weather-agent-frontend.md
+    ├── CHANGELOG.md                   # Version history
+    ├── QUICKSTART.md                  # 5-minute setup guide
+    └── README.md                      # This file
 ```
+
+### Key Technical Components
+
+#### 🏗️ **Agent Registry Pattern**
+
+- **Centralized Discovery**: Single source of truth for agent locations
+- **Dynamic Routing**: Runtime agent resolution and communication
+- **Service Abstraction**: Clean separation between agent logic and discovery
+
+#### 🧠 **LLM Integration Architecture**
+
+- **Structured Prompting**: JSON-based communication with language models
+- **Error Recovery**: Robust parsing and fallback mechanisms
+- **Context Management**: Efficient prompt engineering for agent tasks
+
+#### 🌐 **HTTP Outcall System**
+
+- **External API Integration**: Secure communication with external services
+- **Cycle Management**: Automatic resource allocation for HTTP requests
+- **Response Parsing**: Type-safe JSON processing and error handling
+
+#### 🎨 **Interactive Canvas System**
+
+- **Visual Workflow Builder**: Drag-and-drop agent orchestration
+- **Real-time State Sync**: Persistent canvas state management
+- **Component Architecture**: Modular, reusable UI components
+
+---
+
+## ✅ Testing & Quality Assurance
+
+### Test Architecture
+
+```mermaid
+graph TB
+    subgraph "Frontend Testing"
+        FUnit[Unit Tests<br/>Vitest + Testing Library]
+        FInt[Integration Tests<br/>Component Testing]
+        FE2E[E2E Tests<br/>User Workflows]
+    end
+
+    subgraph "Backend Testing"
+        BUnit[Unit Tests<br/>Motoko Testing]
+        BInt[Integration Tests<br/>PocketIC]
+        BCanister[Canister Tests<br/>Cross-Canister Calls]
+    end
+
+    subgraph "Agent Testing"
+        AUnit[Agent Unit Tests<br/>Individual Functions]
+        AInt[Agent Integration<br/>LLM + API Tests]
+        AFlow[Workflow Tests<br/>Multi-Agent Scenarios]
+    end
+
+    subgraph "CI/CD Pipeline"
+        Lint[Code Linting<br/>Prettier + Motoko]
+        Type[Type Checking<br/>TypeScript + Candid]
+        Security[Security Scans<br/>Dependency Audit]
+    end
+
+    FUnit --> BUnit
+    FInt --> BInt
+    FE2E --> BCanister
+
+    AUnit --> AInt
+    AInt --> AFlow
+
+    BCanister --> Lint
+    AFlow --> Type
+    Type --> Security
+
+    style FUnit fill:#e3f2fd
+    style BUnit fill:#f3e5f5
+    style AUnit fill:#e8f5e8
+    style Lint fill:#fff3e0
+```
+
+### Running Tests
+
+```bash
+# Complete test suite
+npm test
+
+# Frontend tests only
+npm run test:frontend
+
+# Backend tests only
+npm run test:backend
+
+# Individual test files
+npm test tests/src/weather_agent.test.ts
+npm test src/frontend/tests/App.test.tsx
+
+# Watch mode for development
+npm test -- --watch
+```
+
+### Test Examples
+
+#### Backend Integration Test
+
+```typescript
+// tests/src/backend.test.ts
+describe("Backend Canister", () => {
+  let pic: PocketIc;
+  let backend: ActorSubclass<_SERVICE>;
+
+  beforeEach(async () => {
+    pic = await PocketIc.create();
+    const fixture = await pic.setupCanister<_SERVICE>({
+      idlFactory: backendIdlFactory,
+      wasm: resolve(
+        __dirname,
+        "../..",
+        "target/wasm32-unknown-unknown/release/backend.wasm",
+      ),
+    });
+    backend = fixture.actor;
+  });
+
+  test("should execute agent workflow", async () => {
+    const nodes = [{ id: "weather-1", nodeType: "weather_agent" /* ... */ }];
+    const connections = [
+      { id: "conn-1", source: "input", target: "weather-1" /* ... */ },
+    ];
+
+    const result = await backend.execute_agent_workflow(nodes, connections);
+    expect(result).toContain("weather");
+  });
+});
+```
+
+#### Agent Unit Test
+
+```typescript
+// tests/src/weather_agent.test.ts
+describe("Weather Agent", () => {
+  test("should extract location from prompt", async () => {
+    const agent = await setupWeatherAgent();
+    const result = await agent.execute_task("What is the weather in Tokyo?");
+
+    expect(result).toMatch(/tokyo/i);
+    expect(result).toMatch(/temperature|weather/i);
+  });
+
+  test("should handle API configuration errors", async () => {
+    const agent = await setupWeatherAgent({ skipApiKey: true });
+    const result = await agent.execute_task("Weather in London");
+
+    expect(result).toContain("API key not configured");
+  });
+});
+```
+
+---
+
+## 🚀 Production Deployment
+
+### ICP Mainnet Deployment
+
+```bash
+# 1. Configure mainnet identity
+dfx identity new mainnet
+dfx identity use mainnet
+
+# 2. Add cycles to wallet
+dfx wallet --network ic balance
+dfx wallet --network ic send <CANISTER_ID> <CYCLES>
+
+# 3. Deploy to mainnet
+dfx deploy --network ic
+
+# 4. Configure production settings
+dfx canister --network ic call agent-registry setApiKey '("openweathermap", "prod_api_key")'
+```
+
+### Environment Configuration
+
+```bash
+# .env.production
+NETWORK=ic
+WEATHER_API_KEY=your_production_key
+LLM_CANISTER_ID=w36hm-eqaaa-aaaal-qr76a-cai
+REGISTRY_CANISTER_ID=be2us-64aaa-aaaaa-qaabq-cai
+```
+
+### Performance Optimization
+
+#### Canister Optimization
+
+- **Memory Management**: Efficient state persistence with stable variables
+- **Cycle Management**: Automatic cycle monitoring and alerts
+- **Query/Update Balance**: Optimized function classifications for performance
+
+#### Frontend Optimization
+
+- **Code Splitting**: Lazy loading for agent components
+- **Bundle Analysis**: Webpack bundle analyzer integration
+- **CDN Integration**: Static asset optimization
+
+---
+
+## 🔄 CI/CD & DevOps
+
+### GitHub Actions Workflow
+
+```yaml
+# .github/workflows/test-and-deploy.yml
+name: Test and Deploy
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          mops install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to IC
+        env:
+          DFX_IDENTITY: ${{ secrets.DFX_IDENTITY }}
+        run: |
+          dfx deploy --network ic
+```
+
+### Code Quality Gates
+
+```bash
+# Pre-commit hooks (via Husky)
+npm run lint          # Prettier + ESLint
+npm run type-check    # TypeScript validation
+npm run test:quick    # Fast test suite
+mops test            # Motoko unit tests
+```
+
+---
+
+## 🧠 AI-Powered Development
+
+### GitHub Copilot Integration
+
+The platform includes sophisticated AI-powered development workflows:
+
+#### 📝 **Instruction System**
+
+- **Context-Aware**: File-pattern based instructions for different components
+- **Language-Specific**: Tailored guidance for Motoko, TypeScript, and testing
+- **Project-Aware**: ICP-specific best practices and patterns
+
+#### 🛠️ **Automated Workflows**
+
+**Feature Development Prompt:**
+
+```bash
+/add-feature Add real-time air quality monitoring with health recommendations
+```
+
+**Code Review Prompt:**
+
+```bash
+/changes-review
+```
+
+#### ✨ **AI Capabilities**
+
+- **Spec-Driven Development**: Automated test generation and TDD workflows
+- **Code Quality Analysis**: Automated security, performance, and maintainability reviews
+- **Documentation Generation**: Context-aware documentation and API reference updates
+- **Refactoring Assistance**: Safe code transformations with test validation
+
+---
+
+## 📚 Technical Resources
+
+### ICP & Motoko Development
+
+- [Internet Computer Documentation](https://internetcomputer.org/docs)
+- [Motoko Language Guide](https://internetcomputer.org/docs/motoko/main/motoko)
+- [Candid Reference](https://internetcomputer.org/docs/current/references/candid-ref)
+- [Agent Architecture Patterns](https://internetcomputer.org/docs/current/developer-docs/agents/)
+
+### Frontend Development
+
+- [React 18 Documentation](https://react.dev/)
+- [Vite Build Tool](https://vitejs.dev/)
+- [Tailwind CSS v4](https://tailwindcss.com/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+
+### Testing & Quality
+
+- [Vitest Testing Framework](https://vitest.dev/)
+- [PocketIC Testing Library](https://dfinity.github.io/pic-js/)
+- [Testing Library](https://testing-library.com/)
+- [ICP Testing Best Practices](https://internetcomputer.org/docs/current/developer-docs/backend/candid/candid-concepts)
+
+### AI & LLM Integration
+
+- [Ollama Documentation](https://ollama.com/)
+- [Llama 3.1 Model Guide](https://ai.meta.com/blog/meta-llama-3-1/)
+- [JSON Parsing in Motoko](https://mops.one/json)
+- [HTTP Outcalls on ICP](https://internetcomputer.org/docs/current/developer-docs/integrations/http_requests/)
+
+---
+
+## 🤝 Contributing
+
+### Development Workflow
+
+1. **Fork & Clone**: Create your fork and clone locally
+2. **Feature Branch**: Create feature branch (`git checkout -b feature/agent-enhancement`)
+3. **Development**: Follow TDD practices with comprehensive testing
+4. **Quality Checks**: Run linting, type checking, and full test suite
+5. **Pull Request**: Submit PR with detailed description and test coverage
+
+### Code Standards
+
+- **Motoko**: Follow [Motoko Style Guide](https://dfinity.github.io/motoko-style-guide/)
+- **TypeScript**: ESLint + Prettier configuration included
+- **Testing**: Minimum 80% code coverage for new features
+- **Documentation**: Update README and inline documentation for public APIs
+
+### Issue Templates
+
+- 🐛 **Bug Report**: Detailed reproduction steps and environment info
+- ✨ **Feature Request**: Use case description and acceptance criteria
+- 🔧 **Technical Debt**: Performance improvements and refactoring
+- 📚 **Documentation**: Documentation improvements and additions
+
+---
+
+## 📩 Deployment & Submission
+
+### Platform Information
+
+- **Repository**: [GitHub Repository](https://github.com/your-repo/momus-platform)
+- **Live Demo**: [ICP Canister URL](https://your-canister-id.icp0.io)
+- **Documentation**: [Technical Docs](./docs/)
+
+### Submission Checklist
+
+- ✅ All tests passing
+- ✅ Code quality gates met
+- ✅ Documentation updated
+- ✅ Deployment successful
+- ✅ Security review completed
+
+---
+
+**🚀 Ready to build the future of decentralized AI agents? Start coding!**
+
+````
 
 ---
 
@@ -352,7 +800,7 @@ Prompts define specific tasks and guide the AI through a structured workflow. Th
 
 ```markdown
 /add-feature Add a function to decrease the counter value
-```
+````
 
 In this workflow, Copilot follows a Spec Driven Workflow:
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Enhance README with comprehensive architecture documentation, technical diagrams, and deployment guides
 - Add agent execution engine with canvas-based workflow routing for connected agents
 - Add canvas validation to ensure proper agent connections before execution
 - Replace default agent buttons with dropdown selector in Agent Canvas including Weather Agent, Client Agent, and Air Quality Agent options
@@ -16,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace React logo with Momus branding and update homepage link
 - Simplify Demo Pages to focus on LLM functionality by removing greeting and counter sections
 - Add dedicated Weather Agent with real-time weather information and API key management
+
+### Changed
+
+- Modify Agent Canvas test execution to route directly to planner agent instead of using canvas routing logic
 
 - Add structured weather data parser for OpenWeatherMap API responses with typed Motoko records
 - Add HTTP outcalls implementation for real-time weather data fetching from OpenWeatherMap API

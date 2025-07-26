@@ -334,7 +334,8 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
     setExecutionResult(null);
 
     try {
-      const result = await AgentExecutionService.executePrompt(testPrompt);
+      // Use the new test execution method that routes directly to planner agent
+      const result = await AgentExecutionService.executeTestPrompt(testPrompt);
       setExecutionResult(result);
 
       if (!result.success) {
@@ -526,7 +527,7 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
               </div>
               <button
                 onClick={onTestExecution}
-                disabled={isLoading || !canvasStatus.ready}
+                disabled={isLoading}
                 className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? "Executing..." : "Test Execution"}

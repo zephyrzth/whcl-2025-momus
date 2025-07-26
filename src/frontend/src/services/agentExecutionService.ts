@@ -1,4 +1,5 @@
 import { agent_weather_agent } from "../../../declarations/agent-weather_agent";
+import { agent_planner_agent } from "../../../declarations/agent-planner_agent";
 import type { CanvasState, AgentNode } from "../types/canvas";
 import { CanvasService } from "./canvasService";
 
@@ -97,6 +98,38 @@ export class AgentExecutionService {
         success: false,
         error:
           error instanceof Error ? error.message : "Unknown execution error",
+      };
+    }
+  }
+
+  /**
+   * Execute a test prompt directly through the planner agent (bypassing canvas routing)
+   * This is used specifically for the Agent Canvas test execution feature
+   */
+  static async executeTestPrompt(prompt: string): Promise<ExecutionResult> {
+    try {
+      const executionPath: string[] = ["Client Agent", "Planner Agent"];
+
+      // Call the planner agent directly
+      const response = await agent_planner_agent.execute_task(prompt);
+
+      return {
+        success: true,
+        response,
+        executionPath,
+      };
+    } catch (error) {
+      console.error(
+        "Error executing test prompt through planner agent:",
+        error,
+      );
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Planner agent execution error",
+        executionPath: ["Client Agent", "Planner Agent"],
       };
     }
   }
@@ -298,19 +331,9 @@ export class AgentExecutionService {
    * Execute weather agent request
    */
   private static async executeWeatherAgent(prompt: string): Promise<string> {
-    // Extract location from prompt (simple implementation)
-    const locationMatch =
-      prompt.match(/in\s+([a-zA-Z\s]+?)[\?\.]/i) ||
-      prompt.match(/for\s+([a-zA-Z\s]+?)[\?\.]/i) ||
-      prompt.match(/([a-zA-Z\s]+)\s+weather/i);
-
-    const location = locationMatch ? locationMatch[1].trim() : "Jakarta";
-
     try {
       // Use the weather agent's execute_task method instead of get_weather_via_http_outcall
-      const result = await agent_weather_agent.execute_task(
-        `Get weather information for ${location}`,
-      );
+      const result = await agent_weather_agent.execute_task(prompt);
       return result;
     } catch (error) {
       throw new Error(`Weather service error: ${error}`);
