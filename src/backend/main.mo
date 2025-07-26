@@ -164,12 +164,12 @@ persistent actor Main {
         // Approach 5: Try multiple simpler calls with retry if first times out
         try {
             _Debug.print("🔄 DEBUG: Trying structured prompt to get user's location");
-            let complexPrompt = "Extract city or lat lon from User Input and return ONLY VALID JSON TEXT WITH NO OTHER TEXT OR FORMATTING. return: {\"message\":\"success\",\"reason\":\"\",\"city\":\"<cityname>\",\"latlon\":[<lat>,<lon>]}. If not weather-related, return: {\"message\":\"failed\",\"reason\":\"I can only provide weather information\",\"city\":\"\",\"latlon\":[]}. No other text. User Input: " # prompt;
-            let complexResponse = await LLM.prompt(#Llama3_1_8B, complexPrompt);
-            _Debug.print("✅ DEBUG: Complex LLM call succeeded: " # complexResponse);
+            let systemPrompt = "Extract location from User Input. Return UNFORMATTED RAW JSON ONLY with this format: {\"message\":\"success\",\"reason\":\"\",\"city\":\"<cityname>\",\"latlon\":[]}. No other text. User Input: " # prompt;
+            let llmResponse = await LLM.prompt(#Llama3_1_8B, systemPrompt);
+            _Debug.print("✅ DEBUG: Fetch Location LLM call succeeded: " # llmResponse);
             
             // Parse the complex LLM response
-            let parsedData = parse_llm_location_response(complexResponse);
+            let parsedData = parse_llm_location_response(llmResponse);
             _Debug.print("✅ DEBUG: Parsed data: " # debug_show(parsedData));
             parsedData;
             
