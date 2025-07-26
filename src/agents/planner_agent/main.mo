@@ -107,17 +107,50 @@ persistent actor PlannerAgent {
 
     private func run_planner(prompt : Text) : async Text {
 
-        let finalPrompt = "You are a helpful assistant that routes user requests to the appropriate agents based on the content of the request. Also you need to refine the user request for more accurate " #
+        let systemPrompt = "You are a helpful assistant that routes user requests to the appropriate agents based on the content of the request. Also you need to refine the user request for more accurate " #
         "Currently we are able to handle 2 topics, weather and air quality ." #
         "Agent Name List: `weather_agent`, `air_quality_agent`." #
-        "Please response it in the form of json format, { \"message\": \"success\", \"agents\": [ { \"name\": \"<agent_name>\", \"refined_request\": \"<refined_request>\" } ] }." #
-        "Fallback response: { \"message\": \"no_agent\", \"agents\": [] }" #
-        "Process this : " # prompt;
+        "Please response it in the form of json format, { \"message\": \"success\", \"agents\": [ { \"name\": \"<agent_name>\", \"refined_request\": \"<refined_request>\" } ] }" #
+        "Fallback response: { \"message\": \"no_agent\", \"agents\": [] }";
+
+        let messages : [LLM.ChatMessage] = [
+            #system_({
+                content = systemPrompt;
+            }),
+            // Few-shot example 1: Weather request
+            #user({
+                content = "How is the weather today in Jakarta?";
+            }),
+            #assistant({
+                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"weather_agent\", \"refined_request\": \"What is the weather like today in Jakarta?\" } ] }";
+                tool_calls = [];
+            }),
+            // Few-shot example 2: Air quality request
+            #user({
+                content = "How is the air quality in Bandung?";
+            }),
+            #assistant({
+                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"air_quality_agent\", \"refined_request\": \"What is the air quality like in Bandung?\" } ] }";
+                tool_calls = [];
+            }),
+            #user({
+                content = "How is today in Surabaya?";
+            }),
+            #assistant({
+                content = ?"{ \"message\": \"success\", \"agents\": [ { \"name\": \"weather_agent\", \"refined_request\": \"What is the weather like today in Surabaya?\" }, { \"name\": \"air_quality_agent\", \"refined_request\": \"What is the air quality like today in Surabaya?\" } ] }";
+                tool_calls = [];
+            }),
+            #user({
+                content = prompt;
+            }),
+        ];
 
         try {
-            let llmResponse = await LLM.prompt(#Llama3_1_8B, finalPrompt);
-            Debug.print("LLM Planner response: " # llmResponse);
-            llmResponse;
+            let response = await LLM.chat(#Llama3_1_8B).withMessages(messages).send();
+            switch (response.message.content) {
+                case (?text) text;
+                case null "I couldn't generate a response. Please try again.";
+            };
         } catch (error) {
             throw error;
         };
@@ -197,14 +230,28 @@ persistent actor PlannerAgent {
 
         let aggregatedContext = Text.join("\n\n", contextBuilder.vals());
 
-        let finalPrompt = "You are a helpful assistant that aggregates and synthesizes responses from multiple specialized agents. " #
+        let systemPrompt = "You are a helpful assistant that aggregates and synthesizes responses from multiple specialized agents. " #
         "Your task is to combine the provided information into a single, coherent, and well-structured answer. " #
-        "Process this:\n\n" # aggregatedContext;
+        "Make sure to include all relevant information while maintaining clarity and natural flow. " #
+        "If there are multiple topics covered, organize them logically and provide a comprehensive response.";
+
+        let userPrompt = "Please aggregate and refine the following agent responses into a single, coherent answer:\n\n" # aggregatedContext;
+
+        let messages : [LLM.ChatMessage] = [
+            #system_({
+                content = systemPrompt;
+            }),
+            #user({
+                content = userPrompt;
+            }),
+        ];
 
         try {
-            let llmResponse = await LLM.prompt(#Llama3_1_8B, finalPrompt);
-            Debug.print("LLM aggregation response: " # llmResponse);
-            llmResponse;
+            let response = await LLM.chat(#Llama3_1_8B).withMessages(messages).send();
+            switch (response.message.content) {
+                case (?text) text;
+                case null "I couldn't aggregate the responses. Please try again.";
+            };
         } catch (error) {
             Debug.print("Aggregation error: " # Error.message(error));
             // Fallback: return simple concatenation if LLM fails
@@ -214,5 +261,6 @@ persistent actor PlannerAgent {
             };
             Text.join(" | ", fallbackResponse.vals());
         };
+        
     };
 };

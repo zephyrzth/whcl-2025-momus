@@ -158,18 +158,51 @@ persistent actor AirQualityAgent {
     // Step 1: Use LLM to extract city name from user prompt
     private func extract_city_from_prompt(prompt : Text) : async Text {
 
-        let finalPrompt = "You are a helpful assistant that extracts city names from user requests about air quality." #
-        "Please respond in JSON format: { \"message\": \"success\", \"city\": \"<city_name>\" }." #
-        "Fallback response: { \"message\": \"no_city\", \"city\": \"\" }." #
-        "Process this request: " # prompt;
+         let systemPrompt = "You are a helpful assistant that extracts city names from user requests about air quality. " #
+        "Please respond in JSON format: { \"message\": \"success\", \"city\": \"<city_name>\" } " #
+        "Fallback response: { \"message\": \"no_city\", \"city\": \"\" }";
+
+        let messages : [LLM.ChatMessage] = [
+            #system_({
+                content = systemPrompt;
+            }),
+            // Few-shot examples
+            #user({
+                content = "How is the air quality in Jakarta?";
+            }),
+            #assistant({
+                content = ?"{ \"message\": \"success\", \"city\": \"Jakarta\" }";
+                tool_calls = [];
+            }),
+            #user({
+                content = "What's the pollution level in New York City?";
+            }),
+            #assistant({
+                content = ?"{ \"message\": \"success\", \"city\": \"New York City\" }";
+                tool_calls = [];
+            }),
+            #user({
+                content = "Tell me about air pollution in Bandung, Indonesia";
+            }),
+            #assistant({
+                content = ?"{ \"message\": \"success\", \"city\": \"Bandung\" }";
+                tool_calls = [];
+            }),
+            #user({
+                content = prompt;
+            }),
+        ];
 
         try {
-            let llmResponse = await LLM.prompt(#Llama3_1_8B, finalPrompt);
-            Debug.print("LLM AirQuality response: " # llmResponse);
-            llmResponse;
+            let response = await LLM.chat(#Llama3_1_8B).withMessages(messages).send();
+            switch (response.message.content) {
+                case (?text) text;
+                case null "{ \"message\": \"no_city\", \"city\": \"\" }";
+            };
         } catch (error) {
             throw error;
         };
+        
     };
 
     // Step 2: Parse city extraction response
