@@ -8,7 +8,7 @@ import Iter "mo:base/Iter";
 import Char "mo:base/Char";
 import AgentInterface "../../shared/AgentInterface";
 
-actor AgentRegistry {
+persistent actor AgentRegistry {
 
     // Dynamic agent discovery - no hardcoded types!
     public type AgentDiscovery = {
@@ -21,12 +21,12 @@ actor AgentRegistry {
     public type AgentCallResult = Result.Result<Text, Text>;
 
     // HashMap to store discovered agent canister IDs
-    private stable var agentCanistersEntries : [(Text, Text)] = [];
-    private var agentCanisters = HashMap.HashMap<Text, Text>(10, Text.equal, Text.hash);
+    private var agentCanistersEntries : [(Text, Text)] = [];
+    private transient var agentCanisters = HashMap.HashMap<Text, Text>(10, Text.equal, Text.hash);
 
     // Cache for agent metadata to avoid repeated calls
-    private stable var agentMetadataEntries : [(Text, AgentInterface.AgentMetadata)] = [];
-    private var agentMetadataCache = HashMap.HashMap<Text, AgentInterface.AgentMetadata>(10, Text.equal, Text.hash);
+    private var agentMetadataEntries : [(Text, AgentInterface.AgentMetadata)] = [];
+    private transient var agentMetadataCache = HashMap.HashMap<Text, AgentInterface.AgentMetadata>(10, Text.equal, Text.hash);
 
     // Initialize from stable storage
     system func preupgrade() {
@@ -299,8 +299,8 @@ actor AgentRegistry {
     };
 
     // API Key Management
-    private stable var apiKeysEntries : [(Text, Text)] = [];
-    private var apiKeys = HashMap.HashMap<Text, Text>(10, Text.equal, Text.hash);
+    private var apiKeysEntries : [(Text, Text)] = [];
+    private transient var apiKeys = HashMap.HashMap<Text, Text>(10, Text.equal, Text.hash);
 
     // Set API key for a service
     public func setApiKey(service : Text, apiKey : Text) : async Result.Result<Text, Text> {

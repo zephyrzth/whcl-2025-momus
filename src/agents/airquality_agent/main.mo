@@ -1,6 +1,6 @@
 import LLM "mo:llm";
 import AgentInterface "../../shared/AgentInterface";
-import ApiKeyService "../../shared/ApiKeyService";
+import ApiKeyService "../../services/ApiKeyService";
 import Debug "mo:base/Debug";
 import Text "mo:base/Text";
 import Error "mo:base/Error";
@@ -13,10 +13,10 @@ import Nat64 "mo:base/Nat64";
 import Int "mo:base/Int";
 import Cycles "mo:base/ExperimentalCycles";
 
-actor AirQualityAgent {
+persistent actor AirQualityAgent {
 
     // Initialize API Key Service to fetch keys from AgentRegistry
-    private let apiKeyService = ApiKeyService.ApiKeyService("b77ix-eeaaa-aaaaa-qaada-cai");
+    private transient let apiKeyService = ApiKeyService.ApiKeyService("b77ix-eeaaa-aaaaa-qaada-cai");
 
     // HTTP Outcall types for external API calls
     public type HttpRequestArgs = {

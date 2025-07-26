@@ -1,6 +1,6 @@
 import LLM "mo:llm";
 import AgentInterface "../../shared/AgentInterface";
-import AgentDiscoveryService "../../shared/AgentDiscoveryService";
+import AgentDiscoveryService "../../services/AgentDiscoveryService";
 import Debug "mo:base/Debug";
 import Text "mo:base/Text";
 import Error "mo:base/Error";
@@ -8,10 +8,10 @@ import Array "mo:base/Array";
 import Json "mo:json";
 import Result "mo:base/Result";
 
-actor PlannerAgent {
+persistent actor PlannerAgent {
 
     // Use AgentDiscoveryService to interact with the registry
-    private let agentDiscovery = AgentDiscoveryService.AgentDiscoveryService("b77ix-eeaaa-aaaaa-qaada-cai");
+    private transient let agentDiscovery = AgentDiscoveryService.AgentDiscoveryService("b77ix-eeaaa-aaaaa-qaada-cai");
 
     // Custom types for JSON parsing
     private type AgentInfo = {

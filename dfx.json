@@ -7,7 +7,7 @@
     "agent-registry": {
       "dependencies": ["agent-planner_agent", "agent-airquality_agent"],
       "type": "motoko",
-      "main": "src/shared/AgentRegistry.mo"
+      "main": "src/agents/agent_registry/main.mo"
     },
     "agent-planner_agent": {
       "dependencies": ["llm"],
