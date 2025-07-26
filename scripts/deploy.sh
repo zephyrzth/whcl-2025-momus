@@ -19,17 +19,9 @@ sleep 30
 echo
 echo "4️⃣ Getting agent canister IDs..."
 
-# Define agent canisters from dfx.json (exclude agent-registry)
-# AGENT_CANISTERS="agent-airquality_agent agent-planner_agent"
+# Get all agent canisters dynamically from dfx.json (exclude agent-registry)
 echo "   📋 Discovering agent canisters from dfx.json..."
-if command -v jq &> /dev/null; then
-    # Use jq if available (preferred method)
-    AGENT_CANISTERS=$(cat dfx.json | jq -r '.canisters | keys[] | select(startswith("agent-") and . != "agent-registry")')
-else
-    # Fallback method without jq dependency
-    AGENT_CANISTERS=$(grep -o '"agent-[^"]*"' dfx.json | grep -v '"agent-registry"' | tr -d '"')
-fi
-
+AGENT_CANISTERS=$(jq -r '.canisters | keys[] | select(startswith("agent-") and . != "agent-registry")' dfx.json | tr '\n' ' ')
 REGISTRY_ID=$(dfx canister id agent-registry)
 
 echo "   📋 Found agent canisters:"

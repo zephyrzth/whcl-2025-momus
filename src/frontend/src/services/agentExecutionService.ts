@@ -1,4 +1,4 @@
-import { backend } from "../../../declarations/backend";
+import { agent_weather_agent } from "../../../declarations/agent-weather_agent";
 import type { CanvasState, AgentNode } from "../types/canvas";
 import { CanvasService } from "./canvasService";
 
@@ -307,13 +307,11 @@ export class AgentExecutionService {
     const location = locationMatch ? locationMatch[1].trim() : "Jakarta";
 
     try {
-      const result = await backend.get_weather_via_http_outcall(location, "");
-
-      if ("ok" in result) {
-        return result.ok;
-      } else {
-        throw new Error(result.err);
-      }
+      // Use the weather agent's execute_task method instead of get_weather_via_http_outcall
+      const result = await agent_weather_agent.execute_task(
+        `Get weather information for ${location}`,
+      );
+      return result;
     } catch (error) {
       throw new Error(`Weather service error: ${error}`);
     }

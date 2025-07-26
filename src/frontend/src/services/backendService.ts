@@ -1,4 +1,5 @@
 import { backend } from "../../../declarations/backend";
+import { agent_weather_agent } from "../../../declarations/agent-weather_agent";
 
 /**
  * Service for handling all backend canister API calls
@@ -41,11 +42,13 @@ export const backendService = {
   // Weather Agent Methods
   /**
    * Initializes the weather API with the provided API key
+   * Note: This functionality may need to be implemented in the weather agent
    * @param apiKey OpenWeatherMap API key
    * @returns Promise that resolves when the API key is set
    */
   async initWeatherApi(apiKey: string): Promise<void> {
-    return await backend.init_weather_api(apiKey);
+    // TODO: Implement weather API initialization in weather agent
+    console.log("Weather API initialization not yet implemented", apiKey);
   },
 
   /**
@@ -53,7 +56,7 @@ export const backendService = {
    * @returns Promise with boolean indicating if API is configured
    */
   async isWeatherApiConfigured(): Promise<boolean> {
-    return await backend.is_weather_api_configured();
+    return await agent_weather_agent.is_weather_api_configured();
   },
 
   /**
@@ -63,7 +66,7 @@ export const backendService = {
    */
   async getWeatherByCity(location: string): Promise<string> {
     const prompt = `How is the weather today in ${location}?`;
-    return await backend.execute_task(prompt);
+    return await agent_weather_agent.execute_task(prompt);
   },
 
   /**
@@ -74,6 +77,6 @@ export const backendService = {
    */
   async getWeatherByCoordinates(lat: number, lon: number): Promise<string> {
     const prompt = `How is the weather at coordinates ${lat}, ${lon}?`;
-    return await backend.execute_task(prompt);
+    return await agent_weather_agent.execute_task(prompt);
   },
 };
