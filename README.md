@@ -170,6 +170,7 @@ npm start
 The template includes a weather agent that can fetch live weather data and provide clothing recommendations. To enable this feature:
 
 1. **Get an OpenWeatherMap API key**:
+
    - Visit [OpenWeatherMap API](https://openweathermap.org/api)
    - Sign up for a free account
    - Generate an API key
@@ -389,9 +390,11 @@ The AI will analyze the current git diffs, then reference other files in the rep
 #### ✅ **Focus Areas**
 
 1. **Business Logic:**
+
    - Detects potential unwanted side effects or missing edge cases.
 
 2. **Code Quality:**
+
    - Suggests improvements or refactor opportunities.
 
 3. **Security & Performance:**
