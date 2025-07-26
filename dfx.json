@@ -5,7 +5,11 @@
       "id": "w36hm-eqaaa-aaaal-qr76a-cai"
     },
     "agent-registry": {
-      "dependencies": ["agent-planner_agent", "agent-airquality_agent"],
+      "dependencies": [
+        "agent-planner_agent",
+        "agent-airquality_agent",
+        "agent-weather_agent"
+      ],
       "type": "motoko",
       "main": "src/agents/agent_registry/main.mo"
     },
@@ -18,6 +22,11 @@
       "dependencies": ["llm"],
       "type": "motoko",
       "main": "src/agents/airquality_agent/main.mo"
+    },
+    "agent-weather_agent": {
+      "dependencies": ["llm"],
+      "type": "motoko",
+      "main": "src/agents/weather_agent/main.mo"
     },
     "backend": {
       "dependencies": ["llm"],

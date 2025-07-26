@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve Momus logo presentation by increasing size and removing spinning animation
 - Replace React logo with Momus branding and update homepage link
 - Simplify Demo Pages to focus on LLM functionality by removing greeting and counter sections
+- Add dedicated Weather Agent with real-time weather information and API key management
+
 - Add structured weather data parser for OpenWeatherMap API responses with typed Motoko records
 - Add HTTP outcalls implementation for real-time weather data fetching from OpenWeatherMap API
 - Add public wrapper function for direct LLM weather agent testing and debugging
