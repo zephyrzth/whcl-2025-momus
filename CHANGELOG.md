@@ -9,12 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add agent execution engine with canvas-based workflow routing for connected agents
+- Add canvas validation to ensure proper agent connections before execution
+- Replace default agent buttons with dropdown selector in Agent Canvas including Weather Agent, Client Agent, and Air Quality Agent options
+- Improve Momus logo presentation by increasing size and removing spinning animation
+- Replace React logo with Momus branding and update homepage link
+- Simplify Demo Pages to focus on LLM functionality by removing greeting and counter sections
 - Add HTTP outcalls implementation for real-time weather data fetching from OpenWeatherMap API
 - Add public wrapper function for direct LLM weather agent testing and debugging
 - Add AI-powered weather agent with live OpenWeatherMap API integration and intelligent clothing recommendations via LLM
 - Add navigation menu bar with Home, LLM, and Counter options for easy view switching
 - Add Agent Marketplace with trending agents for purchase and integration into canvas
 - Add React Flow canvas for agentic AI workflow design with drag & drop nodes
+
+### Changed
+
+- Simplify Agent Marketplace by removing purchase functionality and showing only agent titles and descriptions
 - Add backend persistent storage for agent canvas state with positions, connections, and attributes
 - Add frontend integration with backend canvas state management including error handling and loading states
 - Add set_count update method to allow setting the counter to a specific value

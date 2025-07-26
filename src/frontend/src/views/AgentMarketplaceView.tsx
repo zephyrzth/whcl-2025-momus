@@ -1,12 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { AgentCard } from "../components/AgentCard";
 import {
-  Agent,
   marketplaceAgents,
   categoryOptions,
   sortOptions,
-  addPurchasedAgent,
-  isPurchased as checkIsPurchased,
 } from "../services/agentMarketplace";
 
 interface AgentMarketplaceViewProps {
@@ -14,19 +11,10 @@ interface AgentMarketplaceViewProps {
   setLoading: (loading: boolean) => void;
 }
 
-export function AgentMarketplaceView({ onError }: AgentMarketplaceViewProps) {
+export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSort, setSelectedSort] = useState("rating");
+  const [selectedSort, setSelectedSort] = useState("name");
   const [searchQuery, setSearchQuery] = useState("");
-  const [purchasedAgents, setPurchasedAgents] = useState<string[]>([]);
-
-  // Refresh purchased agents on mount
-  useEffect(() => {
-    const purchased = JSON.parse(
-      localStorage.getItem("purchasedAgents") || "[]",
-    );
-    setPurchasedAgents(purchased.map((p: any) => p.agentId));
-  }, []);
 
   const filteredAndSortedAgents = useMemo(() => {
     let filtered = marketplaceAgents;
@@ -52,16 +40,10 @@ export function AgentMarketplaceView({ onError }: AgentMarketplaceViewProps) {
     // Sort agents
     const sorted = [...filtered].sort((a, b) => {
       switch (selectedSort) {
-        case "rating":
-          return b.rating - a.rating;
-        case "price-low":
-          return a.price - b.price;
-        case "price-high":
-          return b.price - a.price;
-        case "reviews":
-          return b.reviewCount - a.reviewCount;
         case "name":
           return a.name.localeCompare(b.name);
+        case "category":
+          return a.category.localeCompare(b.category);
         default:
           return 0;
       }
@@ -69,16 +51,6 @@ export function AgentMarketplaceView({ onError }: AgentMarketplaceViewProps) {
 
     return sorted;
   }, [selectedCategory, selectedSort, searchQuery]);
-
-  const handlePurchase = (agent: Agent) => {
-    try {
-      addPurchasedAgent(agent);
-      setPurchasedAgents((prev) => [...prev, agent.id]);
-      console.log(`Successfully purchased ${agent.name}`);
-    } catch (error) {
-      onError(`Failed to purchase ${agent.name}`);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -147,14 +119,7 @@ export function AgentMarketplaceView({ onError }: AgentMarketplaceViewProps) {
         {/* Agent Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredAndSortedAgents.map((agent) => (
-            <AgentCard
-              key={agent.id}
-              agent={agent}
-              isPurchased={
-                purchasedAgents.includes(agent.id) || checkIsPurchased(agent.id)
-              }
-              onPurchase={handlePurchase}
-            />
+            <AgentCard key={agent.id} agent={agent} />
           ))}
         </div>
 
@@ -173,8 +138,7 @@ export function AgentMarketplaceView({ onError }: AgentMarketplaceViewProps) {
 
         {/* Info */}
         <div className="mt-6 text-sm text-gray-400">
-          <p>• Purchased agents will be available in the Agent Canvas</p>
-          <p>• All purchases are stored locally in your browser</p>
+          <p>• All agents are available for use in the Agent Canvas</p>
           <p>
             • Use filters and search to find the perfect agent for your workflow
           </p>

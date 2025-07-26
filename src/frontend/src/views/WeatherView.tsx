@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { backendService } from "../services/backendService";
+import { DemoExecutionService } from "../services/demoExecutionService";
 import { Button } from "../components/Button";
 import { InputField } from "../components/InputField";
+import { TextArea } from "../components/TextArea";
 import { Card } from "../components/Card";
 import { Loader } from "../components/Loader";
 import { ErrorDisplay } from "../components/ErrorDisplay";
@@ -17,9 +19,23 @@ export const WeatherView: React.FC = () => {
   const [isApiConfigured, setIsApiConfigured] = useState<boolean | null>(null);
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
+  // Canvas execution state
+  const [canvasPrompt, setCanvasPrompt] = useState(
+    "What is the current weather in Jakarta?",
+  );
+  const [canvasResponse, setCanvasResponse] = useState<string | null>(null);
+  const [canvasExecutionPath, setCanvasExecutionPath] = useState<string[]>([]);
+  const [isDemoReady, setIsDemoReady] = useState<boolean | null>(null);
+
   // Check if API is configured on component mount
   useEffect(() => {
     checkApiConfiguration();
+    checkDemoReadiness();
+
+    // Set up periodic check for demo readiness every 3 seconds
+    const interval = setInterval(checkDemoReadiness, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const checkApiConfiguration = async () => {
@@ -29,6 +45,16 @@ export const WeatherView: React.FC = () => {
     } catch (err) {
       console.error("Failed to check API configuration:", err);
       setError("Failed to check API configuration");
+    }
+  };
+
+  const checkDemoReadiness = async () => {
+    try {
+      const status = await DemoExecutionService.isDemoReady();
+      setIsDemoReady(status.ready);
+    } catch (err) {
+      console.error("Failed to check demo readiness:", err);
+      setIsDemoReady(false);
     }
   };
 
@@ -107,6 +133,35 @@ export const WeatherView: React.FC = () => {
     }
   };
 
+  const handleCanvasExecution = async () => {
+    if (!canvasPrompt.trim()) {
+      setError("Please enter a prompt");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setCanvasResponse(null);
+    setCanvasExecutionPath([]);
+
+    try {
+      const result = await DemoExecutionService.executeUserPrompt(canvasPrompt);
+
+      if (result.success) {
+        setCanvasResponse(result.response || "No response received");
+        setCanvasExecutionPath(result.executionPath || []);
+      } else {
+        setError(result.error || "Execution failed");
+        setCanvasExecutionPath(result.executionPath || []);
+      }
+    } catch (err) {
+      console.error("Failed to execute canvas prompt:", err);
+      setError("Failed to execute prompt through canvas");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="mx-auto max-w-4xl space-y-6">
@@ -119,6 +174,88 @@ export const WeatherView: React.FC = () => {
             Get live weather data and smart clothing recommendations
           </p>
         </div>
+
+        {/* Canvas-based Execution */}
+        <Card title="🤖 Agent Canvas Execution">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-3 w-3 rounded-full ${
+                    isDemoReady ? "bg-green-500" : "bg-orange-500"
+                  }`}
+                />
+                <span
+                  className={`text-sm font-medium ${
+                    isDemoReady ? "text-green-600" : "text-orange-600"
+                  }`}
+                >
+                  {isDemoReady
+                    ? "Canvas is configured and ready"
+                    : "Canvas configuration needed"}
+                </span>
+              </div>
+              <Button
+                onClick={checkDemoReadiness}
+                disabled={isLoading}
+                className="bg-gray-600 px-3 py-1 text-sm hover:bg-gray-700"
+              >
+                Refresh Status
+              </Button>
+            </div>
+
+            {isDemoReady ? (
+              <div className="space-y-3">
+                <TextArea
+                  placeholder="Ask about weather in any city..."
+                  value={canvasPrompt}
+                  onChange={(e) => setCanvasPrompt(e.target.value)}
+                  rows={2}
+                />
+                <Button
+                  onClick={handleCanvasExecution}
+                  disabled={isLoading || !canvasPrompt.trim()}
+                  className="w-full"
+                >
+                  {isLoading ? <Loader /> : "Execute through Agent Canvas"}
+                </Button>
+
+                {canvasExecutionPath.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Execution path:</span>{" "}
+                    {canvasExecutionPath.join(" → ")}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-4 text-center">
+                <p className="mb-2 text-gray-600">
+                  Configure your agent workflow in the Agent Canvas to enable
+                  execution
+                </p>
+                <Button
+                  onClick={() => (window.location.hash = "#/canvas")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Go to Agent Canvas
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Canvas Response */}
+        {canvasResponse && (
+          <Card title="🎯 Agent Response">
+            <div className="space-y-4">
+              <div className="rounded-lg bg-green-50 p-6">
+                <div className="whitespace-pre-wrap text-green-900">
+                  {canvasResponse}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* API Configuration Status */}
         <Card title="API Configuration">

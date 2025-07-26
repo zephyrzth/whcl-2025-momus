@@ -72,11 +72,8 @@ export const categoryOptions = [
 ];
 
 export const sortOptions = [
-  { value: "rating", label: "Highest Rated" },
-  { value: "price-low", label: "Price: Low to High" },
-  { value: "price-high", label: "Price: High to Low" },
-  { value: "reviews", label: "Most Reviews" },
   { value: "name", label: "Alphabetical" },
+  { value: "category", label: "Category" },
 ];
 
 // Local storage helpers
