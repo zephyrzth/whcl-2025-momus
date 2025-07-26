@@ -1,4 +1,4 @@
-import AgentRegistryInterface "AgentRegistryInterface";
+import AgentRegistryInterface "../shared/AgentRegistryInterface";
 import Result "mo:base/Result";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";

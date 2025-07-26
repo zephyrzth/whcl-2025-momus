@@ -2,7 +2,7 @@ import Result "mo:base/Result";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
-import AgentRegistryInterface "AgentRegistryInterface";
+import AgentRegistryInterface "../shared/AgentRegistryInterface";
 
 module {
     public type AgentRegistryService = AgentRegistryInterface.AgentRegistryInterface;
