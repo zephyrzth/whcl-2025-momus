@@ -12,15 +12,15 @@ import Iter "mo:base/Iter";
 import Json "mo:json";
 import Array "mo:base/Array";
 
-actor Main {
+persistent actor Main {
     // Counter variable to keep track of count
-    private stable var counter : Nat64 = 0;
+    private var counter : Nat64 = 0;
     
     // Weather API configuration
-    private stable var weatherApiKey : Text = "";
+    private var weatherApiKey : Text = "";
 
     // Canvas state storage
-    private stable var canvasState : ?CanvasState = null;
+    private var canvasState : ?CanvasState = null;
 
     // Type definition for the location response from LLM
     public type LocationResponse = {
@@ -110,29 +110,6 @@ actor Main {
         weatherApiKey != ""
     };
 
-    // Test function to simulate weather API response for debugging
-    public func test_execute_task(prompt: Text) : async Text {
-        let locationData = await get_location_data_via_llm(prompt);
-        switch (locationData.message) {
-            case "success" {
-                if (locationData.city != "" or locationData.latlon.size() == 2) {
-                    // Simulate a weather response for testing
-                    let mockWeatherJson = "{\"main\":{\"temp\":28.5,\"humidity\":75},\"weather\":[{\"main\":\"Clear\",\"description\":\"clear sky\"}],\"wind\":{\"speed\":2.1}}";
-                    let weatherRecommendation = await get_weather_recommendation_via_llm(mockWeatherJson);
-                    return "✅ LOCATION: " # locationData.city # " | RECOMMENDATION: " # weatherRecommendation;
-                } else {
-                    "No valid location data provided";
-                };
-            };
-            case "failed" {
-                return "Failed to fetch weather data: " # locationData.reason;
-            };
-            case (_) {
-                return "Internal Error: Unable to process the request.";
-            };
-        };
-    };
-
     public func execute_task(prompt: Text) : async Text {
         let locationData = await get_location_data_via_llm(prompt);
         switch (locationData.message) {
@@ -180,53 +157,14 @@ actor Main {
         };
     };
 
-// Private helper function to get location data from user prompt via LLM with retry strategy
+    // Private helper function to get location data from user prompt via LLM with retry strategy
     private func get_location_data_via_llm(prompt: Text) : async LocationResponse {
         _Debug.print("🔍 DEBUG: Starting LLM location extraction for prompt: " # prompt);
         
         // Approach 5: Try multiple simpler calls with retry if first times out
         try {
-            _Debug.print("📞 DEBUG: Attempting first LLM call with simple prompt");
-            let simplePrompt = "Extract city name from this weather request and return JSON {\"city\":\"<cityname>\"}. Input: " # prompt;
-            let firstResponse = await LLM.prompt(#Llama3_1_8B, simplePrompt);
-            _Debug.print("✅ DEBUG: First LLM call succeeded: " # firstResponse);
-            
-            // Try to extract city from simple response
-            switch (Json.parse(firstResponse)) {
-                case (#ok(parsed)) {
-                    let cityResult = Json.getAsText(parsed, "city");
-                    switch (cityResult) {
-                        case (#ok(cityText)) {
-                            if (cityText != "") {
-                                _Debug.print("✅ DEBUG: Successfully extracted city: " # cityText);
-                                return {
-                                    message = "success";
-                                    reason = "";
-                                    city = cityText;
-                                    latlon = [];
-                                };
-                            };
-                        };
-                        case (#err(_)) {};
-                    };
-                };
-                case (#err(_)) {};
-            };
-            
-            // If simple parsing failed, fall back to original complex prompt
-            _Debug.print("🔄 DEBUG: Simple extraction failed, trying complex prompt");
-            let complexPrompt = "You are an intelligent assistant that can fetch location data from user's prompt, and return it in specified JSON format. " #
-                "Your task is to:
-" #
-                "1. Understand prompt from input, if it ask for a current weather info then continue to no 2. If it asking things other than weather related, continue to no 3.
-" #
-                "2. Fetch the city name or lat lon from the prompt, and continue to no. 4
-" #
-                "3. Return in specified JSON format  \"{ \"message\": \"failed\", \"reason\": \"I'm sorry, I can only provide current weather information.\", \"city\": \"\", \"latlon\": [] }\"\n" #
-                "4. Return the data in a specific JSON format { \"message\": \"success\", \"reason\": \"\", \"city\": \"<city name>\", \"latlon\": [ <lat>, <lon> ] }
-" #
-                "Now process this user input: " # prompt;
-            
+            _Debug.print("🔄 DEBUG: Trying structured prompt to get user's location");
+            let complexPrompt = "Extract city or lat lon from User Input and return ONLY VALID JSON TEXT WITH NO OTHER TEXT OR FORMATTING. return: {\"message\":\"success\",\"reason\":\"\",\"city\":\"<cityname>\",\"latlon\":[<lat>,<lon>]}. If not weather-related, return: {\"message\":\"failed\",\"reason\":\"I can only provide weather information\",\"city\":\"\",\"latlon\":[]}. No other text. User Input: " # prompt;
             let complexResponse = await LLM.prompt(#Llama3_1_8B, complexPrompt);
             _Debug.print("✅ DEBUG: Complex LLM call succeeded: " # complexResponse);
             
@@ -236,32 +174,16 @@ actor Main {
             parsedData;
             
         } catch (_error) {
-            _Debug.print("� DEBUG: All LLM approaches failed, using fallback");
-            // Final fallback: simple text parsing
-            if (Text.contains(Text.toLowercase(prompt), #text "jakarta")) {
-                return {
-                    message = "success";
-                    reason = "Fallback text parsing";
-                    city = "Jakarta";
-                    latlon = [];
-                };
-            } else if (Text.contains(Text.toLowercase(prompt), #text "weather")) {
-                return {
-                    message = "failed";
-                    reason = "Could not extract location from weather request";
-                    city = "";
-                    latlon = [];
-                };
-            } else {
-                return {
-                    message = "failed";
-                    reason = "Not a weather request";
-                    city = "";
-                    latlon = [];
-                };
+            return {
+                message = "failed";
+                reason = "Error fetching user location data from LLM";
+                city = "";
+                latlon = [];
             };
         };
-    };    // Helper function to parse LLM location response JSON
+    };
+    
+    // Helper function to parse LLM location response JSON
     private func parse_llm_location_response(_jsonResponse: Text) : LocationResponse {
         switch (Json.parse(_jsonResponse)) {
             case (#ok(parsed)) {
@@ -337,27 +259,9 @@ actor Main {
         };
     };
 
-        // Private helper function to get weather recommendation via LLM
+    // Private helper function to get weather recommendation via LLM
     private func get_weather_recommendation_via_llm(weatherJsonResponse: Text) : async Text {
-        let fullPrompt = "You are a friendly, humorous intelligent clothing recommendation agent. " #
-            "Analyze the OpenWeatherMap JSON response and provide clothing recommendations." #
-            "Key fields to look for:" #
-            "• main.temp = Current temperature (Celsius)" #
-            "• main.humidity = Humidity percentage" #
-            "• weather[0].description = Weather description" #
-            "• weather[0].main = Weather type (Rain, Snow, Clear, etc.)" #
-            "• wind.speed = Wind speed (m/s)" #
-            "• clouds.all = Cloud coverage percentage" #
-            "Clothing Rules:" #
-            "• <10°C: Heavy coat, warm clothes, gloves" #
-            "• 10-20°C: Jacket or sweater" #
-            "• 20-25°C: Light jacket or long sleeves" #
-            "• >25°C: Light, breathable clothing" #
-            "• Rain: Umbrella/raincoat" #
-            "• Sunny: Sunscreen, hat, sunglasses" #
-            "• High humidity (>80%): Moisture-wicking fabrics" #
-            "Respond conversationally and explain your reasoning." #
-            "Weather data: " # weatherJsonResponse;
+        let fullPrompt = "Give brief information about the current weather in the location, and clothing advice based on weather data. Respond in 2-3 lines max. Weather JSON: " # weatherJsonResponse;
 
         try {
             // Use LLM.prompt instead of LLM.chat for potentially better timeout handling
