@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Enhance README with comprehensive architecture documentation, technical diagrams, and deployment guides
 - Add agent execution engine with canvas-based workflow routing for connected agents
 - Add canvas validation to ensure proper agent connections before execution
 - Replace default agent buttons with dropdown selector in Agent Canvas including Weather Agent, Client Agent, and Air Quality Agent options

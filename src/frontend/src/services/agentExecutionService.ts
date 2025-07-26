@@ -298,19 +298,9 @@ export class AgentExecutionService {
    * Execute weather agent request
    */
   private static async executeWeatherAgent(prompt: string): Promise<string> {
-    // Extract location from prompt (simple implementation)
-    const locationMatch =
-      prompt.match(/in\s+([a-zA-Z\s]+?)[\?\.]/i) ||
-      prompt.match(/for\s+([a-zA-Z\s]+?)[\?\.]/i) ||
-      prompt.match(/([a-zA-Z\s]+)\s+weather/i);
-
-    const location = locationMatch ? locationMatch[1].trim() : "Jakarta";
-
     try {
       // Use the weather agent's execute_task method instead of get_weather_via_http_outcall
-      const result = await agent_weather_agent.execute_task(
-        `Get weather information for ${location}`,
-      );
+      const result = await agent_weather_agent.execute_task(prompt);
       return result;
     } catch (error) {
       throw new Error(`Weather service error: ${error}`);
