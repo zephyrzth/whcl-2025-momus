@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify Demo Pages to focus on LLM functionality by removing greeting and counter sections
 - Add dedicated Weather Agent with real-time weather information and API key management
 
+### Changed
+
+- Modify Agent Canvas test execution to route directly to planner agent instead of using canvas routing logic
+
 - Add structured weather data parser for OpenWeatherMap API responses with typed Motoko records
 - Add HTTP outcalls implementation for real-time weather data fetching from OpenWeatherMap API
 - Add public wrapper function for direct LLM weather agent testing and debugging

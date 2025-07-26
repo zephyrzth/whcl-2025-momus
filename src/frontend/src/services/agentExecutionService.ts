@@ -1,4 +1,5 @@
 import { agent_weather_agent } from "../../../declarations/agent-weather_agent";
+import { agent_planner_agent } from "../../../declarations/agent-planner_agent";
 import type { CanvasState, AgentNode } from "../types/canvas";
 import { CanvasService } from "./canvasService";
 
@@ -97,6 +98,38 @@ export class AgentExecutionService {
         success: false,
         error:
           error instanceof Error ? error.message : "Unknown execution error",
+      };
+    }
+  }
+
+  /**
+   * Execute a test prompt directly through the planner agent (bypassing canvas routing)
+   * This is used specifically for the Agent Canvas test execution feature
+   */
+  static async executeTestPrompt(prompt: string): Promise<ExecutionResult> {
+    try {
+      const executionPath: string[] = ["Client Agent", "Planner Agent"];
+
+      // Call the planner agent directly
+      const response = await agent_planner_agent.execute_task(prompt);
+
+      return {
+        success: true,
+        response,
+        executionPath,
+      };
+    } catch (error) {
+      console.error(
+        "Error executing test prompt through planner agent:",
+        error,
+      );
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Planner agent execution error",
+        executionPath: ["Client Agent", "Planner Agent"],
       };
     }
   }
