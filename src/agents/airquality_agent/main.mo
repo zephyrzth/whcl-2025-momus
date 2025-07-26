@@ -165,6 +165,7 @@ persistent actor AirQualityAgent {
 
         try {
             let llmResponse = await LLM.prompt(#Llama3_1_8B, finalPrompt);
+            Debug.print("LLM AirQuality response: " # llmResponse);
             llmResponse;
         } catch (error) {
             throw error;

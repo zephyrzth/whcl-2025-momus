@@ -116,6 +116,7 @@ persistent actor PlannerAgent {
 
         try {
             let llmResponse = await LLM.prompt(#Llama3_1_8B, finalPrompt);
+            Debug.print("LLM Planner response: " # llmResponse);
             llmResponse;
         } catch (error) {
             throw error;
@@ -202,6 +203,7 @@ persistent actor PlannerAgent {
 
         try {
             let llmResponse = await LLM.prompt(#Llama3_1_8B, finalPrompt);
+            Debug.print("LLM aggregation response: " # llmResponse);
             llmResponse;
         } catch (error) {
             Debug.print("Aggregation error: " # Error.message(error));
