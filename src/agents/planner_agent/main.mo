@@ -7,11 +7,12 @@ import Error "mo:base/Error";
 import Array "mo:base/Array";
 import Json "mo:json";
 import Result "mo:base/Result";
+import List "mo:base/List";
 
 persistent actor PlannerAgent {
 
     // Use AgentDiscoveryService to interact with the registry
-    private transient let agentDiscovery = AgentDiscoveryService.AgentDiscoveryService("b77ix-eeaaa-aaaaa-qaada-cai");
+    private transient let agentDiscovery = AgentDiscoveryService.AgentDiscoveryService("be2us-64aaa-aaaaa-qaabq-cai");
 
     // Custom types for JSON parsing
     private type AgentInfo = {
@@ -43,6 +44,8 @@ persistent actor PlannerAgent {
     public func execute_task(userInput : Text) : async Text {
         try {
             let resp = await run_planner(userInput);
+
+            Debug.print("LLM response: " # resp);
 
             // Use the new parsing function
             let parseResult = await parse_planner_response(resp);
@@ -103,14 +106,11 @@ persistent actor PlannerAgent {
 
     private func run_planner(prompt : Text) : async Text {
 
-        let systemPrompt = "You are a helpful assistant that routes user requests to the appropriate agents based on the content of the request" #
-        "Also you need to refine the user request for more accurate request for specific agent" #
-        "Currently we are able to handle 2 topics, weather and air quality." #
-        "If the request is about weather, answer `weather_agent`." #
-        "If the request is about air quality, answer `air_quality_agent`." #
-        "It's possible the request is about all of the topics that we can handle" #
+        let systemPrompt = "You are a helpful assistant that routes user requests to the appropriate agents based on the content of the request. Also you need to refine the user request for more accurate " #
+        "Currently we are able to handle 2 topics, weather and air quality ." #
+        "Agent Name List: `weather_agent`, `air_quality_agent`." #
         "Please response it in the form of json format, { \"message\": \"success\", \"agents\": [ { \"name\": \"<agent_name>\", \"refined_request\": \"<refined_request>\" } ] }" #
-        "If the request is not about any of the topics, please respond like this: { \"message\": \"no_agent\", \"agents\": [] }";
+        "Fallback response: { \"message\": \"no_agent\", \"agents\": [] }";
 
         let messages : [LLM.ChatMessage] = [
             #system_({
@@ -158,6 +158,7 @@ persistent actor PlannerAgent {
 
     // Function to parse JSON response to custom type (extracted from execute_task logic)
     private func parse_planner_response(jsonString : Text) : async ParseResult {
+
         switch (Json.parse(jsonString)) {
             case (#ok(parsed)) {
                 let message = Json.getAsText(parsed, "message");

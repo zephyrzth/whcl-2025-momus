@@ -16,7 +16,7 @@ import Cycles "mo:base/ExperimentalCycles";
 persistent actor AirQualityAgent {
 
     // Initialize API Key Service to fetch keys from AgentRegistry
-    private transient let apiKeyService = ApiKeyService.ApiKeyService("b77ix-eeaaa-aaaaa-qaada-cai");
+    private transient let apiKeyService = ApiKeyService.ApiKeyService("be2us-64aaa-aaaaa-qaabq-cai");
 
     // HTTP Outcall types for external API calls
     public type HttpRequestArgs = {
@@ -158,9 +158,8 @@ persistent actor AirQualityAgent {
     // Step 1: Use LLM to extract city name from user prompt
     private func extract_city_from_prompt(prompt : Text) : async Text {
         let systemPrompt = "You are a helpful assistant that extracts city names from user requests about air quality. " #
-        "Your task is to identify the city mentioned in the user's request. " #
         "Please respond in JSON format: { \"message\": \"success\", \"city\": \"<city_name>\" } " #
-        "If no city is mentioned or the request is unclear, respond: { \"message\": \"no_city\", \"city\": \"\" }";
+        "Fallback response: { \"message\": \"no_city\", \"city\": \"\" }";
 
         let messages : [LLM.ChatMessage] = [
             #system_({
