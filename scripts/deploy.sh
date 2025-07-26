@@ -1,42 +1,15 @@
 #!/bin/bash
 
-# 🎯 Simple Deploy and Register Script
-# ====================================
-
-echo "🎯 Simple Deploy and Register Script"
-echo "===================================="
-
-# Stop any existing dfx processes and start clean
-echo "1️⃣  Stopping existing dfx processes..."
-# dfx stop
-# pkill -f dfx 2>/dev/null || true
-sleep 2
-
-echo "2️⃣  Starting clean dfx environment..."
-dfx start --clean --background
-
-# Wait a moment for dfx to fully start
-echo "   Waiting for dfx to initialize..."
-sleep 30
-
-# Install npm dependencies
-echo "3️⃣  Installing npm dependencies..."
-npm install
-
-# Pull and deploy dependencies
-echo "4️⃣  Pulling dependencies..."
-mops install
-
-echo "5️⃣  Deploying dependencies..."
+echo "1️⃣ Deploying dependencies..."
 dfx deps pull
 dfx deps deploy
 
 # Build all canisters first
-echo "6️⃣  Building all canisters..."
+echo "2️⃣  Building all canisters..."
 dfx build
 
 # Deploy all canisters
-echo "7️⃣  Deploying all canisters..."
+echo "3️⃣ Deploying all canisters..."
 dfx deploy
 
 # Wait and verify deployment completed
@@ -44,7 +17,7 @@ echo "   Verifying deployment completed..."
 sleep 30
 
 echo
-echo "8️⃣  Getting agent canister IDs..."
+echo "4️⃣ Getting agent canister IDs..."
 
 # Define agent canisters from dfx.json (exclude agent-registry)
 AGENT_CANISTERS="agent-airquality_agent agent-planner_agent"
@@ -59,7 +32,7 @@ done
 echo "   📋 Registry ID: $REGISTRY_ID"
 
 echo
-echo "9️⃣  Initializing API keys from .env..."
+echo "5️⃣ Initializing API keys from .env..."
 
 # Check if .env file exists
 if [ -f ".env" ]; then
@@ -94,7 +67,7 @@ else
 fi
 
 echo
-echo "🔟  Registering agents with AgentRegistry..."
+echo "🔟 Registering agents with AgentRegistry..."
 
 # Register each agent
 for agent in $AGENT_CANISTERS; do
