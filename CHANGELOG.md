@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add structured weather data parser for OpenWeatherMap API responses with typed Motoko records
 - Add HTTP outcalls implementation for real-time weather data fetching from OpenWeatherMap API
 - Add public wrapper function for direct LLM weather agent testing and debugging
 - Add AI-powered weather agent with live OpenWeatherMap API integration and intelligent clothing recommendations via LLM
