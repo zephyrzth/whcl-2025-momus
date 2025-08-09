@@ -7,3 +7,7 @@ export * from "./Loader";
 export * from "./NavigationBar";
 export * from "./TextArea";
 export * from "./AgentCard";
+export * from "./Header";
+export * from "./HeroSection";
+export * from "./FeaturesSection";
+export * from "./Footer";

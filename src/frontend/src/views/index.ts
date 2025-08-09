@@ -6,3 +6,4 @@ export * from "./LlmPromptView";
 export * from "./AgentCanvasView";
 export * from "./AgentMarketplaceView";
 export * from "./WeatherView";
+export * from "./LandingPage";

@@ -1,10 +1,9 @@
 import { useState } from "react";
-import MomusLogo from "../assets/momus.webp";
 
 // Import components and views
-import { Loader, ErrorDisplay } from "./components";
+import { Header, Footer, Loader, ErrorDisplay } from "./components";
 import {
-  LlmPromptView,
+  LandingPage,
   AgentCanvasView,
   AgentMarketplaceView,
   WeatherView,
@@ -14,118 +13,126 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [currentPage, setCurrentPage] = useState<
-    "home" | "canvas" | "marketplace" | "weather"
+    "home" | "features" | "canvas" | "marketplace" | "weather"
   >("home");
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
+    setLoading(false);
   };
 
-  return (
-    <>
-      <div className="flex min-h-screen items-center justify-center bg-gray-800 text-white">
-        <div className="mx-auto w-full max-w-4xl space-y-8 p-8 text-center">
-          <div className="mb-8">
-            <a href="/" rel="noreferrer">
-              <img
-                src={MomusLogo}
-                className="mx-auto h-80 p-6 will-change-[filter] hover:drop-shadow-[0_0_2em_#61dafbaa]"
-                alt="Momus logo"
-              />
-            </a>
-          </div>
+  const handleNavigate = (page: string) => {
+    setError(undefined);
+    setCurrentPage(page as typeof currentPage);
+  };
 
-          <div className="space-y-4">
-            <h2 className="text-xl">Marketplace of Autonomous AI Agents</h2>
-          </div>
+  const renderContent = () => {
+    switch (currentPage) {
+      case "home":
+      case "features":
+        return <LandingPage onNavigate={handleNavigate} />;
 
-          {/* Navigation */}
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={() => setCurrentPage("home")}
-              className={`rounded px-6 py-2 font-medium transition-colors ${
-                currentPage === "home"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
-              }`}
-            >
-              Demo Pages
-            </button>
-            <button
-              onClick={() => setCurrentPage("weather")}
-              className={`rounded px-6 py-2 font-medium transition-colors ${
-                currentPage === "weather"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
-              }`}
-            >
-              Weather Agent
-            </button>
-            <button
-              onClick={() => setCurrentPage("marketplace")}
-              className={`rounded px-6 py-2 font-medium transition-colors ${
-                currentPage === "marketplace"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
-              }`}
-            >
-              Agent Marketplace
-            </button>
-            <button
-              onClick={() => setCurrentPage("canvas")}
-              className={`rounded px-6 py-2 font-medium transition-colors ${
-                currentPage === "canvas"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-600 text-gray-300 hover:bg-gray-500"
-              }`}
-            >
-              Agent Canvas
-            </button>
-          </div>
-
-          {/* Content Sections */}
-          <div className="space-y-6">
-            {currentPage === "home" && (
-              <>
-                {/* LLM Prompt Section */}
-                <LlmPromptView onError={handleError} setLoading={setLoading} />
-              </>
-            )}
-
-            {currentPage === "weather" && (
-              <>
-                {/* Weather Agent Section */}
+      case "weather":
+        return (
+          <div className="min-h-screen bg-gray-900 py-8">
+            <div className="container mx-auto px-4">
+              <div className="mx-auto max-w-4xl">
+                <div className="mb-8 text-center">
+                  <h1 className="mb-4 text-3xl font-bold text-white">
+                    Weather Intelligence Agent
+                  </h1>
+                  <p className="text-gray-300">
+                    Get AI-powered weather insights and recommendations
+                  </p>
+                </div>
                 <WeatherView />
-              </>
-            )}
+              </div>
+            </div>
+          </div>
+        );
 
-            {currentPage === "marketplace" && (
-              <>
-                {/* Agent Marketplace Section */}
+      case "marketplace":
+        return (
+          <div className="min-h-screen bg-gray-900 py-8">
+            <div className="container mx-auto px-4">
+              <div className="mx-auto max-w-6xl">
+                <div className="mb-8 text-center">
+                  <h1 className="mb-4 text-3xl font-bold text-white">
+                    Agent Marketplace
+                  </h1>
+                  <p className="text-gray-300">
+                    Discover and integrate powerful AI agents
+                  </p>
+                </div>
                 <AgentMarketplaceView
                   onError={handleError}
                   setLoading={setLoading}
                 />
-              </>
-            )}
+              </div>
+            </div>
+          </div>
+        );
 
-            {currentPage === "canvas" && (
-              <>
-                {/* Agent Canvas Section */}
+      case "canvas":
+        return (
+          <div className="min-h-screen bg-gray-900 py-8">
+            <div className="container mx-auto px-4">
+              <div className="mx-auto max-w-7xl">
+                <div className="mb-8 text-center">
+                  <h1 className="mb-4 text-3xl font-bold text-white">
+                    Visual Agent Canvas
+                  </h1>
+                  <p className="text-gray-300">
+                    Connect and orchestrate AI agents in powerful workflows
+                  </p>
+                </div>
                 <AgentCanvasView
                   onError={handleError}
                   setLoading={setLoading}
                 />
-              </>
-            )}
+              </div>
+            </div>
           </div>
+        );
 
-          {/* Loading and Error States */}
-          {loading && !error && <Loader />}
-          {!!error && <ErrorDisplay message={error} />}
-        </div>
-      </div>
-    </>
+      default:
+        return <LandingPage onNavigate={handleNavigate} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <Header currentPage={currentPage} onNavigate={handleNavigate} />
+
+      <main className="flex-1">
+        {renderContent()}
+
+        {/* Global Loading and Error States */}
+        {loading && !error && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="rounded-lg bg-gray-800 p-8">
+              <Loader />
+            </div>
+          </div>
+        )}
+
+        {!!error && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-gray-800 p-8">
+              <ErrorDisplay message={error} />
+              <button
+                onClick={() => setError(undefined)}
+                className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <Footer />
+    </div>
   );
 }
 
