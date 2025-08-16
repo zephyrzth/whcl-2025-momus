@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add user authentication system with login and registration using Motoko backend
+- Add client-side routing with React Router for protected and public routes
+- Add session management with 15-minute timeout for authenticated users
+- Move Weather Demo, Marketplace, and Canvas features behind authentication
 - Revamp frontend UI with modern SaaS landing page inspired by Saasfly template
 - Add proper header navigation with professional branding and menu structure
 - Create hero section with compelling call-to-action and feature highlights
