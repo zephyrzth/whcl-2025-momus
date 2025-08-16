@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import MomusIcon from "../../assets/momus-icon.webp";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -10,6 +10,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigationItems = [
     { id: "canvas", label: "Canvas", path: "/canvas" },
@@ -19,6 +20,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleLogout = async () => {
     await logout();
+    navigate("/login", { replace: true });
   };
 
   const isActivePath = (path: string) => {
@@ -40,7 +42,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <img
                   src={MomusIcon}
                   alt="Momus"
-                  className="h-6 w-6 object-contain"
+                  className="h-12 w-12 object-contain"
                 />
                 <span className="text-xl font-bold text-white">Momus</span>
               </Link>
@@ -67,7 +69,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* User Menu */}
           <div className="flex items-center space-x-4">
             <span className="hidden text-sm text-gray-300 sm:inline">
-              Welcome, {user?.email}
+              Welcome,{" "}
+              {user?.displayName || user?.principalId?.slice(0, 8) + "..."}
             </span>
             <button
               onClick={handleLogout}

@@ -10,15 +10,11 @@ import { authService, User } from "../services/authService";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (
-    email: string,
-    password: string,
-  ) => Promise<{ success: boolean; error?: string }>;
-  register: (
-    email: string,
-    password: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+  login: () => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  updateProfile: (
+    displayName: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: boolean;
 }
 
@@ -38,19 +34,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const initializeAuth = async () => {
     try {
-      const currentUser = authService.getCurrentUser();
+      // Initialize auth client
+      await authService.init();
 
-      if (currentUser && authService.isAuthenticated()) {
-        // Validate session with backend
-        const result = await authService.validateSession();
+      // Check if user is already authenticated with Internet Identity
+      const isAuth = await authService.isAuthenticated();
 
-        if (result.success && result.data) {
-          setUser(result.data);
+      if (isAuth) {
+        // Try to get current user profile from localStorage first
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
         } else {
-          // Session is invalid, clear local auth
-          await authService.logout();
-          setUser(null);
+          // If no user in localStorage but authenticated, get/create profile
+          try {
+            const result = await authService.getOrCreateUserProfile();
+            if (result.success && result.data) {
+              setUser(result.data);
+            }
+          } catch (error) {
+            console.error("Error getting user profile:", error);
+            // If profile fetch fails, logout to clear state
+            await authService.logout();
+            setUser(null);
+          }
         }
+      } else {
+        // Not authenticated, clear any stale localStorage data
+        authService.clearAuth();
+        setUser(null);
       }
     } catch (error) {
       console.error("Auth initialization error:", error);
@@ -60,12 +72,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async () => {
     try {
-      const result = await authService.login({ email, password });
+      const result = await authService.login();
 
       if (result.success && result.data) {
-        setUser(result.data.user);
+        setUser(result.data);
         return { success: true };
       } else {
         return { success: false, error: result.error || "Login failed" };
@@ -75,25 +87,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return {
         success: false,
         error: error instanceof Error ? error.message : "Login failed",
-      };
-    }
-  };
-
-  const register = async (email: string, password: string) => {
-    try {
-      const result = await authService.register({ email, password });
-
-      if (result.success && result.data) {
-        setUser(result.data.user);
-        return { success: true };
-      } else {
-        return { success: false, error: result.error || "Registration failed" };
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Registration failed",
       };
     }
   };
@@ -109,12 +102,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const updateProfile = async (displayName: string) => {
+    try {
+      const result = await authService.updateUserProfile(displayName);
+
+      if (result.success && result.data) {
+        setUser(result.data);
+        return { success: true };
+      } else {
+        return { success: false, error: result.error || "Update failed" };
+      }
+    } catch (error) {
+      console.error("Update profile error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Update failed",
+      };
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
-    register,
     logout,
+    updateProfile,
     isAuthenticated: user !== null,
   };
 

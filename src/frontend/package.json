@@ -11,6 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dfinity/auth-client": "^3.2.1",
+    "@dfinity/identity": "^3.2.1",
+    "@dfinity/principal": "^3.2.1",
     "@types/react-router-dom": "^5.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

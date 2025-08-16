@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Integrate Internet Identity authentication replacing email/password system
+- Replace email/password authentication with ICP Principal-based authentication system
 - Add user authentication system with login and registration using Motoko backend
 - Add client-side routing with React Router for protected and public routes
 - Add session management with 15-minute timeout for authenticated users

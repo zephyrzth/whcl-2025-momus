@@ -1,27 +1,13 @@
 import { backend } from "../../../declarations/backend";
+import { AuthClient } from "@dfinity/auth-client";
 
 // Types for authentication
 export interface User {
-  id: string;
-  email: string;
+  principalId: string; // Store as string to avoid type conflicts
+  displayName?: string;
+  createdAt: string; // Store as string for serialization
 }
 
-export interface AuthResponse {
-  user: User;
-  token: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterCredentials {
-  email: string;
-  password: string;
-}
-
-// Service result types
 export interface ServiceResult<T> {
   success: boolean;
   data?: T;
@@ -29,63 +15,63 @@ export interface ServiceResult<T> {
 }
 
 class AuthService {
-  private static readonly TOKEN_KEY = "momus_auth_token";
+  private authClient: AuthClient | null = null;
   private static readonly USER_KEY = "momus_user";
 
-  // Register a new user
-  async register(
-    credentials: RegisterCredentials,
-  ): Promise<ServiceResult<AuthResponse>> {
-    try {
-      const result = await backend.register(
-        credentials.email,
-        credentials.password,
-      );
-
-      if ("ok" in result) {
-        const authResponse: AuthResponse = {
-          user: {
-            id: result.ok.user.id,
-            email: result.ok.user.email,
-          },
-          token: result.ok.token,
-        };
-
-        this.storeAuth(authResponse);
-        return { success: true, data: authResponse };
-      } else {
-        return { success: false, error: result.err };
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Registration failed",
-      };
-    }
+  async init(): Promise<void> {
+    this.authClient = await AuthClient.create({
+      idleOptions: {
+        disableIdle: true, // Disable idle logout for simplicity
+      },
+    });
   }
 
-  // Login user
-  async login(
-    credentials: LoginCredentials,
-  ): Promise<ServiceResult<AuthResponse>> {
+  async login(): Promise<ServiceResult<User>> {
     try {
-      const result = await backend.login(
-        credentials.email,
-        credentials.password,
-      );
-
-      if ("ok" in result) {
-        const authResponse: AuthResponse = {
-          user: result.ok.user,
-          token: result.ok.token,
-        };
-
-        this.storeAuth(authResponse);
-        return { success: true, data: authResponse };
-      } else {
-        return { success: false, error: result.err };
+      if (!this.authClient) {
+        await this.init();
       }
+
+      if (!this.authClient) {
+        return { success: false, error: "Failed to initialize auth client" };
+      }
+
+      return new Promise((resolve) => {
+        this.authClient!.login({
+          identityProvider:
+            process.env.DFX_NETWORK === "local"
+              ? `http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943/`
+              : "https://identity.ic0.app",
+          onSuccess: async () => {
+            try {
+              // Get or create user profile
+              const userResult = await this.getOrCreateUserProfile();
+              if (userResult.success && userResult.data) {
+                this.storeUser(userResult.data);
+                resolve({ success: true, data: userResult.data });
+              } else {
+                resolve({
+                  success: false,
+                  error: userResult.error || "Failed to get user profile",
+                });
+              }
+            } catch (error) {
+              console.error("Error after login:", error);
+              resolve({
+                success: false,
+                error: error instanceof Error ? error.message : "Login failed",
+              });
+            }
+          },
+          onError: (error) => {
+            console.error("Internet Identity login error:", error);
+            resolve({
+              success: false,
+              error: error || "Internet Identity login failed",
+            });
+          },
+        });
+      });
     } catch (error) {
       console.error("Login error:", error);
       return {
@@ -95,83 +81,102 @@ class AuthService {
     }
   }
 
-  // Logout user
   async logout(): Promise<ServiceResult<boolean>> {
     try {
-      const token = this.getToken();
-      if (token) {
-        await backend.logout(token);
+      if (this.authClient) {
+        await this.authClient.logout();
       }
-
       this.clearAuth();
       return { success: true, data: true };
     } catch (error) {
       console.error("Logout error:", error);
-      // Still clear local storage even if backend call fails
+      // Still clear local auth even if logout fails
       this.clearAuth();
       return { success: true, data: true };
     }
   }
 
-  // Validate current session
-  async validateSession(): Promise<ServiceResult<User>> {
+  async isAuthenticated(): Promise<boolean> {
     try {
-      const token = this.getToken();
-      if (!token) {
-        return { success: false, error: "No token found" };
+      if (!this.authClient) {
+        await this.init();
       }
-
-      const result = await backend.validateSession(token);
-
-      if ("ok" in result) {
-        // Update stored user info
-        this.storeUser(result.ok);
-        return { success: true, data: result.ok };
-      } else {
-        // Session invalid, clear local storage
-        this.clearAuth();
-        return { success: false, error: result.err };
-      }
+      return this.authClient?.isAuthenticated() || false;
     } catch (error) {
-      console.error("Session validation error:", error);
-      this.clearAuth();
+      console.error("Error checking authentication:", error);
+      return false;
+    }
+  }
+
+  async getOrCreateUserProfile(): Promise<ServiceResult<User>> {
+    try {
+      // First try to get existing profile
+      const profileResult = await backend.getUserProfile();
+
+      if ("ok" in profileResult) {
+        const user: User = {
+          principalId: profileResult.ok.principalId.toString(),
+          displayName: profileResult.ok.displayName[0] || undefined,
+          createdAt: profileResult.ok.createdAt.toString(),
+        };
+        return { success: true, data: user };
+      }
+
+      // If profile doesn't exist, create one
+      if (
+        "err" in profileResult &&
+        profileResult.err === "User profile not found"
+      ) {
+        const createResult = await backend.createUserProfile([]);
+
+        if ("ok" in createResult) {
+          const user: User = {
+            principalId: createResult.ok.principalId.toString(),
+            displayName: createResult.ok.displayName[0] || undefined,
+            createdAt: createResult.ok.createdAt.toString(),
+          };
+          return { success: true, data: user };
+        } else {
+          return { success: false, error: createResult.err };
+        }
+      }
+
+      return { success: false, error: profileResult.err };
+    } catch (error) {
+      console.error("Error getting/creating user profile:", error);
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Session validation failed",
+          error instanceof Error ? error.message : "Failed to get user profile",
       };
     }
   }
 
-  // Refresh session
-  async refreshSession(): Promise<ServiceResult<string>> {
+  async updateUserProfile(displayName: string): Promise<ServiceResult<User>> {
     try {
-      const token = this.getToken();
-      if (!token) {
-        return { success: false, error: "No token found" };
-      }
-
-      const result = await backend.refreshSession(token);
+      const result = await backend.updateUserProfile([displayName]);
 
       if ("ok" in result) {
-        this.storeToken(result.ok);
-        return { success: true, data: result.ok };
+        const user: User = {
+          principalId: result.ok.principalId.toString(),
+          displayName: result.ok.displayName[0] || undefined,
+          createdAt: result.ok.createdAt.toString(),
+        };
+        this.storeUser(user);
+        return { success: true, data: user };
       } else {
-        this.clearAuth();
         return { success: false, error: result.err };
       }
     } catch (error) {
-      console.error("Session refresh error:", error);
-      this.clearAuth();
+      console.error("Update profile error:", error);
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Session refresh failed",
+          error instanceof Error ? error.message : "Failed to update profile",
       };
     }
   }
 
-  // Get current user from local storage
   getCurrentUser(): User | null {
     try {
       const userJson = localStorage.getItem(AuthService.USER_KEY);
@@ -185,32 +190,11 @@ class AuthService {
     }
   }
 
-  // Get current token
-  getToken(): string | null {
-    return localStorage.getItem(AuthService.TOKEN_KEY);
-  }
-
-  // Check if user is authenticated
-  isAuthenticated(): boolean {
-    return this.getToken() !== null && this.getCurrentUser() !== null;
-  }
-
-  // Private methods for local storage management
-  private storeAuth(authResponse: AuthResponse): void {
-    this.storeToken(authResponse.token);
-    this.storeUser(authResponse.user);
-  }
-
-  private storeToken(token: string): void {
-    localStorage.setItem(AuthService.TOKEN_KEY, token);
-  }
-
   private storeUser(user: User): void {
     localStorage.setItem(AuthService.USER_KEY, JSON.stringify(user));
   }
 
-  private clearAuth(): void {
-    localStorage.removeItem(AuthService.TOKEN_KEY);
+  clearAuth(): void {
     localStorage.removeItem(AuthService.USER_KEY);
   }
 }

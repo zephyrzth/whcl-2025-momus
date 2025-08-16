@@ -216,4 +216,116 @@ describe("Vibe Coding Template Backend", () => {
       expect(loadedState).toEqual([complexState]);
     });
   });
+
+  // Principal-based authentication tests
+  describe("Principal-based Authentication", () => {
+    it("should create user profile with display name", async () => {
+      const displayName = "Test User";
+      const result = await actor.createUserProfile([displayName]);
+
+      expect("ok" in result).toBe(true);
+      if ("ok" in result) {
+        expect(result.ok.displayName).toEqual([displayName]);
+        expect(typeof result.ok.createdAt).toBe("bigint");
+        expect(result.ok.principalId).toBeDefined();
+      }
+    });
+
+    it("should create user profile without display name", async () => {
+      const result = await actor.createUserProfile([]);
+
+      expect("ok" in result).toBe(true);
+      if ("ok" in result) {
+        expect(result.ok.displayName).toEqual([]);
+        expect(typeof result.ok.createdAt).toBe("bigint");
+        expect(result.ok.principalId).toBeDefined();
+      }
+    });
+
+    it("should not allow creating duplicate user profile", async () => {
+      // Create first profile
+      const firstResult = await actor.createUserProfile(["First User"]);
+      expect("ok" in firstResult).toBe(true);
+
+      // Try to create second profile with same principal
+      const secondResult = await actor.createUserProfile(["Second User"]);
+      expect("err" in secondResult).toBe(true);
+      if ("err" in secondResult) {
+        expect(secondResult.err).toBe("User profile already exists");
+      }
+    });
+
+    it("should get user profile after creation", async () => {
+      const displayName = "Profile Test User";
+
+      // Create profile
+      await actor.createUserProfile([displayName]);
+
+      // Get profile
+      const result = await actor.getUserProfile();
+
+      expect("ok" in result).toBe(true);
+      if ("ok" in result) {
+        expect(result.ok.displayName).toEqual([displayName]);
+        expect(result.ok.principalId).toBeDefined();
+      }
+    });
+
+    it("should return error when getting non-existent user profile", async () => {
+      const result = await actor.getUserProfile();
+
+      expect("err" in result).toBe(true);
+      if ("err" in result) {
+        expect(result.err).toBe("User profile not found");
+      }
+    });
+
+    it("should update user profile display name", async () => {
+      const originalName = "Original Name";
+      const updatedName = "Updated Name";
+
+      // Create profile
+      await actor.createUserProfile([originalName]);
+
+      // Update profile
+      const updateResult = await actor.updateUserProfile([updatedName]);
+
+      expect("ok" in updateResult).toBe(true);
+      if ("ok" in updateResult) {
+        expect(updateResult.ok.displayName).toEqual([updatedName]);
+      }
+
+      // Verify update by getting profile
+      const getResult = await actor.getUserProfile();
+      expect("ok" in getResult).toBe(true);
+      if ("ok" in getResult) {
+        expect(getResult.ok.displayName).toEqual([updatedName]);
+      }
+    });
+
+    it("should return error when updating non-existent user profile", async () => {
+      const result = await actor.updateUserProfile(["New Name"]);
+
+      expect("err" in result).toBe(true);
+      if ("err" in result) {
+        expect(result.err).toBe("User profile not found");
+      }
+    });
+
+    it("should return caller principal from whoami", async () => {
+      const principal = await actor.whoami();
+      expect(principal).toBeDefined();
+      expect(principal._arr).toBeDefined(); // Principal has _arr property
+    });
+
+    it("should track user count correctly", async () => {
+      const initialCount = await actor.getUserCount();
+
+      // Create a user profile
+      await actor.createUserProfile(["Test User"]);
+
+      const newCount = await actor.getUserCount();
+      expect(newCount).toBe(initialCount + BigInt(1));
+    });
+  });
 });

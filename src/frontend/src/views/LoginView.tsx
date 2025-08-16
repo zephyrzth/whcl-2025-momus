@@ -1,42 +1,34 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { InputField, Loader, ErrorDisplay } from "../components";
+import { Loader, ErrorDisplay } from "../components";
 
 export function LoginView() {
   const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setLoading(true);
     setError(undefined);
 
     try {
-      const result = await login(formData.email, formData.password);
+      const result = await login();
 
-      if (!result.success) {
+      if (result.success) {
+        // Redirect to the intended page or canvas by default
+        const from = (location.state as any)?.from?.pathname || "/canvas";
+        navigate(from, { replace: true });
+      } else {
         setError(result.error || "Login failed");
       }
-      // Success case is handled by the AuthContext redirect
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, email: e.target.value }));
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, password: e.target.value }));
   };
 
   return (
@@ -53,63 +45,37 @@ export function LoginView() {
           <p className="mt-2 text-gray-300">Access your AI agent workspace</p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="mt-8 space-y-6">
           {error && (
             <div className="rounded-md border border-red-800 bg-red-900/20 p-4">
               <ErrorDisplay message={error} />
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
-                Email address
-              </label>
-              <InputField
-                type="email"
-                value={formData.email}
-                onChange={handleEmailChange}
-                placeholder="Enter your email"
-                className="mr-0 w-full"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
-                Password
-              </label>
-              <InputField
-                type="password"
-                value={formData.password}
-                onChange={handlePasswordChange}
-                placeholder="Enter your password"
-                className="mr-0 w-full"
-              />
-            </div>
-          </div>
-
-          <div>
+          <div className="text-center">
             <button
-              type="submit"
+              onClick={handleLogin}
               disabled={loading}
               className="font-inherit focus:outline-auto w-full cursor-pointer rounded-lg border border-blue-500 bg-blue-600 px-5 py-3 text-base font-medium text-white transition-colors duration-200 hover:border-blue-400 hover:bg-blue-700 focus:outline-4 focus:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? <Loader /> : "Sign in"}
+              {loading ? <Loader /> : "Sign in with Internet Identity"}
             </button>
           </div>
 
           <div className="text-center">
-            <p className="text-gray-300">
-              Don't have an account?{" "}
-              <Link
-                to="/register"
+            <p className="text-sm text-gray-400">
+              Don't have an Internet Identity?{" "}
+              <a
+                href="https://identity.ic0.app"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="font-medium text-blue-400 hover:text-blue-300"
               >
-                Sign up
-              </Link>
+                Create one here
+              </a>
             </p>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
