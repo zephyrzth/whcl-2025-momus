@@ -1,28 +1,24 @@
 /**
- * Loading indicator component
+ * Loading indicator component - Circular spinner with smooth animation
  */
 export function Loader() {
-  const loaderStyle = {
-    animation: "l1 1s infinite",
-  };
-
   return (
     <>
       <style>
         {`
-          @keyframes l1 {
+          @keyframes spin {
             0% {
-              transform: perspective(150px) rotateX(0deg);
+              transform: rotate(0deg);
             }
             100% {
-              transform: perspective(150px) rotateX(180deg);
+              transform: rotate(360deg);
             }
           }
         `}
       </style>
       <div
-        className="mx-auto mt-8 aspect-square w-10 bg-gray-500"
-        style={loaderStyle}
+        className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-gray-600 border-t-blue-500"
+        style={{ animation: "spin 1s linear infinite" }}
       />
     </>
   );
