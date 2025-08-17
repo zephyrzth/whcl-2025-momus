@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add Python agent creation feature with file upload and Pyodide compilation
 - Improve loading indicator with circular spinner design and smoother animation
 - Integrate Internet Identity authentication replacing email/password system
 - Replace email/password authentication with ICP Principal-based authentication system
