@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef, useContext } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -12,6 +12,8 @@ import {
   Node,
   BackgroundVariant,
 } from "reactflow";
+import { AuthContext } from "../contexts/AuthContext";
+import { authService } from "../services/authService";
 
 // Import React Flow styles
 import "reactflow/dist/style.css";
@@ -44,30 +46,9 @@ const nodeTypes = {
   airQualityAgent: AirQualityAgentNode,
 };
 
-// Initial nodes
-const initialNodes: Node[] = [
-  {
-    id: "1",
-    type: "weatherAgent",
-    position: { x: 250, y: 100 },
-    data: { label: "Weather Agent" },
-  },
-  {
-    id: "2",
-    type: "clientAgent",
-    position: { x: 100, y: 200 },
-    data: { label: "Client Agent" },
-  },
-];
-
-const initialEdges: Edge[] = [
-  {
-    id: "edge-2-1",
-    source: "2", // Client Agent
-    target: "1", // Weather Agent
-    type: "default",
-  },
-];
+// Initial empty state
+const initialNodes: Node[] = [];
+const initialEdges: Edge[] = [];
 
 export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -93,10 +74,43 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
 
   const purchasedAgents = getPurchasedAgents();
 
-  // Load canvas state on component mount
+  // Get auth context
+  const authContext = useContext(AuthContext);
+
+  // Debug logging for authentication state changes
   useEffect(() => {
-    loadCanvasFromBackend();
-  }, []);
+    if (authContext?.user) {
+      console.log("[DEBUG] Canvas View - Current User:", {
+        principalId: authContext.user.principalId,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      console.log("[DEBUG] Canvas View - No authenticated user");
+    }
+  }, [authContext?.user]);
+
+  // Load canvas state on component mount and when user changes
+  useEffect(() => {
+    const handleIdentityChange = async () => {
+      if (authContext?.user) {
+        if (authService.hasIdentityChanged()) {
+          console.log("[DEBUG] Identity changed - clearing canvas state");
+          setNodes([]);
+          setEdges([]);
+          // Load fresh state for new identity
+          await loadCanvasFromBackend();
+        } else {
+          console.log(
+            "[DEBUG] Loading canvas state for user:",
+            authContext.user.principalId,
+          );
+          await loadCanvasFromBackend();
+        }
+      }
+    };
+
+    handleIdentityChange();
+  }, [authContext?.user?.principalId]); // Re-run when user's principal ID changes
 
   // Check canvas readiness when nodes or edges change (debounced)
   useEffect(() => {
@@ -179,15 +193,21 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
     try {
       const result = await CanvasService.loadCanvasState();
 
-      if (result.success && result.data) {
-        const { nodes: loadedNodes, edges: loadedEdges } =
-          convertFromCanvasState(result.data);
-        setNodes(loadedNodes);
-        setEdges(loadedEdges);
-      } else if (!result.success) {
+      if (result.success) {
+        if (result.data) {
+          // Load saved state if it exists
+          const { nodes: loadedNodes, edges: loadedEdges } =
+            convertFromCanvasState(result.data);
+          setNodes(loadedNodes);
+          setEdges(loadedEdges);
+        } else {
+          // Clear canvas if no saved state
+          setNodes([]);
+          setEdges([]);
+        }
+      } else {
         setError(result.error || "Failed to load canvas state");
       }
-      // If no data, keep default initial state
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";

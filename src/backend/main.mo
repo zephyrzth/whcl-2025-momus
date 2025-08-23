@@ -11,13 +11,15 @@ import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Int "mo:base/Int";
 import Principal "mo:base/Principal";
+import Debug "mo:base/Debug";
 
 persistent actor Main {
     // Counter variable to keep track of count
     private var counter : Nat64 = 0;
 
-    // Canvas state storage
-    private var canvasState : ?CanvasState = null;
+    // Canvas state storage per user
+    private var canvasStatesEntries: [(Principal, CanvasState)] = [];
+    private transient var canvasStates = HashMap.fromIter<Principal, CanvasState>(canvasStatesEntries.vals(), canvasStatesEntries.size(), Principal.equal, Principal.hash);
 
     // Canvas data types for agent workflow
     public type AgentPosition = {
@@ -101,26 +103,33 @@ persistent actor Main {
 
     // Canvas state management functions
     
-    // Save canvas state
-    public func save_canvas_state(state: CanvasState) : async Bool {
-        canvasState := ?state;
+    // Save canvas state for current user
+    public shared(msg) func save_canvas_state(state: CanvasState) : async Bool {
+        let caller = msg.caller;
+        Debug.print("[DEBUG] Saving canvas state for user:"# Principal.toText(caller) # ".");
+        canvasStates.put(caller, state);
         true;
     };
 
-    // Load canvas state
-    public query func get_canvas_state() : async ?CanvasState {
-        canvasState;
+    // Load canvas state for current user
+    public shared query(msg) func get_canvas_state() : async ?CanvasState {
+        let caller = msg.caller;
+
+        Debug.print("[DEBUG] Getting canvas state for user:" # Principal.toText(caller) # ".");
+        canvasStates.get(caller);
     };
 
-    // Clear canvas state
-    public func clear_canvas_state() : async Bool {
-        canvasState := null;
+    // Clear canvas state for current user
+    public shared(msg) func clear_canvas_state() : async Bool {
+        let caller = msg.caller;
+        canvasStates.delete(caller);
         true;
     };
 
-    // Check if canvas has saved state
-    public query func has_canvas_state() : async Bool {
-        switch (canvasState) {
+    // Check if current user has saved canvas state
+    public shared query(msg) func has_canvas_state() : async Bool {
+        let caller = msg.caller;
+        switch (canvasStates.get(caller)) {
             case (?_) { true };
             case null { false };
         };
@@ -129,11 +138,14 @@ persistent actor Main {
     // System upgrade hooks for stable storage
     system func preupgrade() {
         usersEntries := Iter.toArray(users.entries());
+        canvasStatesEntries := Iter.toArray(canvasStates.entries());
     };
 
     system func postupgrade() {
         users := HashMap.fromIter<Principal, User>(usersEntries.vals(), usersEntries.size(), Principal.equal, Principal.hash);
         usersEntries := [];
+        canvasStates := HashMap.fromIter<Principal, CanvasState>(canvasStatesEntries.vals(), canvasStatesEntries.size(), Principal.equal, Principal.hash);
+        canvasStatesEntries := [];
     };
 
     // Principal-based authentication functions

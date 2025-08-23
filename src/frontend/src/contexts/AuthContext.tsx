@@ -18,7 +18,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (result.success && result.data) {
         setUser(result.data);
+        console.log("[DEBUG] User logged in: ", result.data);
         return { success: true };
       } else {
         return { success: false, error: result.error || "Login failed" };

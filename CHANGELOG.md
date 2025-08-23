@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix canvas state not being properly isolated between different user identities
+- Fix initial canvas state showing default agents for new users instead of an empty canvas
+
 ### Added
 
-- Add Python agent creation feature with file upload and Pyodide compilation
-- Add experimental Python Kybra canister `agentic-backend` with persistent greeting storage
-- Improve loading indicator with circular spinner design and smoother animation
+- Add per-user CanvasState storage and access in backend, isolating canvas data by logged-in ICP identity.
 - Integrate Internet Identity authentication replacing email/password system
 - Replace email/password authentication with ICP Principal-based authentication system
 - Add user authentication system with login and registration using Motoko backend
@@ -32,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Fix authentication to properly handle different Internet Identity sessions and display full principal IDs
 - Modify Agent Canvas test execution to route directly to planner agent instead of using canvas routing logic
 
 - Add structured weather data parser for OpenWeatherMap API responses with typed Motoko records
