@@ -29,17 +29,10 @@ echo ""
 
 # Initialize the weather API
 echo "📡 Calling canister to set API key..."
-dfx canister call backend init_weather_api "(\"$API_KEY\")"
+dfx canister call agent-registry hasApiKey "(\"openweathermap\")"
 
 if [ $? -eq 0 ]; then
     echo "✅ Weather API key configured successfully!"
-    echo ""
-    echo "🔍 Verifying configuration..."
-    dfx canister call backend is_weather_api_configured "()"
-    echo ""
-    echo "🌡️  You can now test the weather agent:"
-    echo "   dfx canister call backend get_weather_with_recommendations '(\"London\")'"
-    echo "   dfx canister call backend get_weather_by_coordinates '(51.5074, -0.1278)'"
 else
     echo "❌ Failed to configure weather API key"
     exit 1
