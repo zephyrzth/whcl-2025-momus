@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Remove Weather Demo menu and functionality
+
 ### Fixed
 
 - Fix canvas state not being properly isolated between different user identities

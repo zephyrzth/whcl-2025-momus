@@ -12,7 +12,6 @@ import {
   RegisterView,
   AgentCanvasView,
   AgentMarketplaceView,
-  WeatherView,
 } from "./views";
 
 function App() {
@@ -47,31 +46,6 @@ function App() {
                           onError={() => {}}
                           setLoading={() => {}}
                         />
-                      </div>
-                    </div>
-                  </div>
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/weather"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <div className="min-h-screen bg-gray-900 py-8">
-                    <div className="container mx-auto px-4">
-                      <div className="mx-auto max-w-4xl">
-                        <div className="mb-8 text-center">
-                          <h1 className="mb-4 text-3xl font-bold text-white">
-                            Weather Intelligence Agent
-                          </h1>
-                          <p className="text-gray-300">
-                            Get AI-powered weather insights and recommendations
-                          </p>
-                        </div>
-                        <WeatherView />
                       </div>
                     </div>
                   </div>

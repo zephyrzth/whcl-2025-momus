@@ -14,7 +14,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigationItems = [
     { id: "canvas", label: "Canvas", path: "/canvas" },
-    { id: "weather", label: "Weather Demo", path: "/weather" },
     { id: "marketplace", label: "Marketplace", path: "/marketplace" },
   ];
 
