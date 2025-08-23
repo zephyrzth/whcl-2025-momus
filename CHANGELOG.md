@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add specification tests for MOMUS (ICRC-1/2) token usage fees via Planner Agent: on agent invocation, charge caller in MOMUS, split 90% to agent owner and 10% app fee to the provided app wallet. Tests currently fail pending implementation.
+- Implement minimal MOMUS token Motoko canister with ICRC-1 metadata and simplified ICRC-2 approve/transfer_from for local dev.
+- Extend AgentInterface with get_owner/get_price and implement in Weather and AirQuality agents.
+- Implement Planner Agent charging flow using MOMUS: when routing to an agent, deduct price from caller via transfer_from, split 90% to agent owner and 10% to app wallet.
+
+### Added
+
 - Add Python agent creation feature with file upload and Pyodide compilation
 - Improve loading indicator with circular spinner design and smoother animation
 - Integrate Internet Identity authentication replacing email/password system
