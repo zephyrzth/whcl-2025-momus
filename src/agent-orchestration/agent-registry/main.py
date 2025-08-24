@@ -1,91 +1,37 @@
 from kybra import (
-    Service, service_update, Principal, Async,
-    Record, Variant, Vec, Opt, update, query, match, ic
+    update, query, Async, ic,
+    StableBTreeMap, blob
 )
 
-from llm import *
 from typing import List, Optional
 import json
 
-storage_name = []
+from model import *
+
+# Storage for chunks and deployments
+agent_registry = StableBTreeMap[str, AgentMetadata](
+    memory_id=1, max_key_size=128, max_value_size=2_000_000  # ~2MB chunks
+)
 
 @update
-def greeting_name(name: str) -> str:
-    ic.print(f"Greeting {name}")
-    storage_name.append(name)
-    return f"Hello, {name}!"
+def register_agent(agent_name: str, canister_id: str) -> ReturnType:
+    agent_registry.insert(agent_name, AgentMetadata(agent_name=agent_name, canister_id=canister_id))
+    return { "Ok": f"Agent {agent_name} registered successfully" }
 
-@update
-def call_llm_v1(user_input: str, use_tools: bool = False) -> Async[str]:
-    """Call LLM using the class-based types"""
-    try:
-        # Create service instance
-        llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
-        
-        # Create messages
-        messages = [
-            create_system_message("You are a helpful assistant."),
-            create_user_message(user_input)
-        ]
-        
-        # Create tools if requested
-        tools = None
+@query
+def get_agent_by_name(agent_name: str) -> ReturnType:
 
-        if use_tools:
-            tools = [
-                create_function_tool(
-                    name="call__weather_agent",
-                    description="Calling Agentic AI for get and analyzing the weather data",
-                    params={
-                        "type": "object",
-                        "properties": {
-                            "prompt": {
-                                "type": "string",
-                                "description": "refined query that contains relevant information to get weather data"
-                            }
-                        },
-                        "required": ["prompt"]
-                    }
-                ),
-                create_function_tool(
-                    name="call__air_quality_agent",
-                    description="Calling Agentic AI for get and analyzing the air quality data",
-                    params={
-                        "type": "object",
-                        "properties": {
-                            "prompt": {
-                                "type": "string",
-                                "description": "refined query that contains relevant information to get air quality data"
-                            }
-                        },
-                        "required": ["prompt"]
-                    }
-                )
-            ]
-        
-        # Create request using ChatRequestV1 type
-        request = {
-            "model": "llama3.1:8b",
-            "tools": tools,
-            "messages": messages
-        }
-        
-        # Call service
-        response_raw = yield llm_service.v1_chat(request)
+    agent = agent_registry.get(agent_name)
 
-        response = match(response_raw, {"Ok": lambda ok: ok, "Err": lambda err: err})
+    if agent is None:
+        return { "Err": f"Agent {agent_name} not found" }
+    
+    ic.print(f"Found agent: {agent}")
+    return { "Ok": json.dumps(agent) }
 
-        ic.print(response)
-        
-        # Process response
-        if response and "message" in response:
-            message = response["message"]
-            return json.dumps({
-                "content": message.get("content"),
-                "tool_calls": message.get("tool_calls", [])
-            })
-        
-        return json.dumps({"response": str(response)})
-        
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+@query
+def get_list_agents() -> ReturnType:
+    agents = agent_registry.values()
+    ic.print(agents)
+    data = [ agent for agent in agents ]
+    return { "Ok": json.dumps(data) }

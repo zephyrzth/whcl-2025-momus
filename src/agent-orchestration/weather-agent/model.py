@@ -1,13 +1,9 @@
 
 from kybra import (
-    Service, service_update, service_query, Principal, Async,
-    Record, Variant, Vec, Opt, update, query, match, blob,
-    StableBTreeMap
+    Service, service_update, service_query, Record, Opt, text, Variant
 )
 
-class AgentMetadata(Record):
-    agent_name: str
-    canister_id: str
+from typing import List, Optional
 
 class ReturnType(Variant, total=False):
     Ok: Opt[str]

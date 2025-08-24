@@ -1,7 +1,13 @@
 
 from kybra import (
     Service, service_update, Principal, Async,
-    Record, Variant, Vec, Opt, update, query, match, ic, null
+    Record, Variant, Vec, Opt, update, query, match, ic, null, CallResult
+)
+
+from kybra.canisters.management import (
+    HttpResponse,
+    HttpTransformArgs,
+    management_canister
 )
 
 from llm import *
@@ -10,10 +16,9 @@ import json
 
 from model import *
 
-
 __METADATA = create_function_tool(
-    name="ClientAgent",
-    description="Agentic AI for planning and routing to other agent",
+    name="WeatherAgent",
+    description="Agentic AI for weather-related tasks",
     params={
         "type": "object",
         "properties": {
@@ -44,6 +49,69 @@ def __is_all_required_params_present(params: List[dict]) -> bool:
 def __transform_params(params: List[dict]) -> dict:
     return { p["name"]: p["value"] for p in params if p.get("value") is not None }
 
+def __tool__get_weather(city_name: str) -> Async[ReturnType]:
+
+
+    # Build the API URL
+    base_url = "https://api.openweathermap.org/data/2.5/weather"
+    
+    # Parameters
+    params = {
+        "q": city_name,
+        "appid": '2b11c2a05b23b49985529c06d7c96b24',
+        "units": "metric"
+    }
+    
+    # Construct full URL
+    query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+    full_url = f"{base_url}?{query_string}"
+    
+    request_args = {
+        "url": full_url,
+        "max_response_bytes": 2048,
+        "headers": [],
+        "body": None,
+        "method": {"get": None},
+        "transform": None
+    }
+    
+    # Add cycles for the outcall
+
+    http_result: CallResult[HttpResponse] = yield management_canister.http_request(request_args).with_cycles(50_000_000)
+
+    response = match(
+        http_result,
+        {
+            "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
+            "Err": lambda err: { "Err": str(err) }
+        },
+    )
+
+    return response
+
+__TOOLS = {
+    "get_weather": {
+        "func" : __tool__get_weather,
+        "metadata" : create_function_tool(
+            name="get_weather",
+            description="a function tool to get current weather",
+            params={
+                "type": "object",
+                "properties": {
+                    "city_name": {
+                        "type": "string",
+                        "description": "name of city"
+                    }
+                },
+                "required": ["city_name"]
+            }
+        )
+    }
+}
+
+def __get_tool_list() -> List[str]:
+    return [ tool['metadata'] for tool in __TOOLS.values() ]
+
 @query
 def get_metadata() -> ReturnType:
     return { "Ok": json.dumps(__METADATA) }
@@ -69,7 +137,9 @@ def execute_task(args: str) -> Async[ReturnType]:
             create_user_message(parameters.get("prompt"))
         ]
         
-        tools = None
+        tools = __get_tool_list()
+
+        ic.print(tools)
 
         # Create request using ChatRequestV1 type
         request = {
