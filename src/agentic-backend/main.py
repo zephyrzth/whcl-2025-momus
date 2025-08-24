@@ -88,48 +88,25 @@ from kybra import (
     StableBTreeMap,
     blob,
     ic,
-    init,
-    nat,
-    nat64,
     Principal,
-    query,
-    Record,
-    update,
-    Vec,
-    Variant,
+    update
 )
 import gzip
 import hashlib
+from canister import *
 
-# Define types for deployment tracking
-class DeploymentRecord(Record):
-    canister_id: Principal
-    wasm_hash: str
-    deployed_at: nat64
-    original_size: nat64
-    compressed_size: nat64
-
-class DeployResult(Variant):
-    Ok: DeploymentRecord
-    Err: str
-
-# Storage for deployment records
+# Storage
 deployments = StableBTreeMap[str, DeploymentRecord](
     memory_id=0, max_key_size=64, max_value_size=1000
 )
-
 
 @update
 def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
     """
     Accepts a gzipped WASM module and deploys it as a new canister.
-    
-    Args:
-        gzipped_wasm: The gzipped WASM binary
-    
-    Returns:
-        DeployResult containing the new canister ID or an error
     """
+    print("🚀 Starting deployment...")
+
     try:
         # Record compressed size
         compressed_size = len(gzipped_wasm)
@@ -138,7 +115,7 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         try:
             wasm_module = gzip.decompress(gzipped_wasm)
         except Exception as e:
-            return DeployResult.Err(f"Failed to decompress WASM: {str(e)}")
+            return {"Err": f"Failed to decompress WASM: {str(e)}"}
         
         # Record decompressed size
         original_size = len(wasm_module)
@@ -146,38 +123,42 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         # Calculate hash for tracking
         wasm_hash = hashlib.sha256(wasm_module).hexdigest()[:16]
         
-        # Create a new canister with cycles
+        # Get management canister
+        management = ManagementCanister(Principal.from_str("aaaaa-aa"))
+        
+        # Create canister args
+        create_args = {
+            "settings": {
+                "controllers": [ic.id()],
+                "compute_allocation": None,
+                "memory_allocation": None,
+                "freezing_threshold": None
+            }
+        }
+        
+        # Create new canister with cycles
         cycles_to_send = 100_000_000_000  # 0.1T cycles
         
-        # Call the management canister to create a new canister
-        # Using default settings (deployer canister will be the controller)
-        create_result = ic.call_with_payment(
-            Principal.from_str("aaaaa-aa"),  # Management canister
-            "create_canister",
-            (),  # Empty args for default settings
-            cycles_to_send
-        )
+        create_result = management.create_canister(create_args).with_cycles128(cycles_to_send)
         
         if not create_result:
-            return DeployResult.Err("Failed to create canister")
+            return {"Err": "Failed to create canister"}
         
-        new_canister_id = create_result[0]["canister_id"]
+        new_canister_id = create_result["canister_id"]
         
-        # Install the WASM code to the new canister
-        ic.call(
-            Principal.from_str("aaaaa-aa"),
-            "install_code",
-            ({
-                "mode": {"install": None},
-                "canister_id": new_canister_id,
-                "wasm_module": wasm_module,
-                "arg": b""
-            },)
-        )
+        # Install the WASM code
+        install_args = {
+            "mode": {"install": None},
+            "canister_id": new_canister_id,
+            "wasm_module": wasm_module,
+            "arg": b""
+        }
+        
+        management.install_code(install_args)
         
         # Record the deployment
         deployment = DeploymentRecord(
-            canister_id=new_canister_id,
+            canister_id=str(new_canister_id),
             wasm_hash=wasm_hash,
             deployed_at=ic.time(),
             original_size=original_size,
@@ -191,56 +172,8 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         print(f"✅ Deployed canister: {new_canister_id}")
         print(f"📊 Original: {original_size} bytes, Compressed: {compressed_size} bytes")
         
-        return DeployResult.Ok(deployment)
+        return {"Ok": deployment}
         
     except Exception as e:
-        return DeployResult.Err(f"Deployment failed: {str(e)}")
-
-# @query
-# def get_deployments() -> Vec[DeploymentRecord]:
-#     """
-#     Get all deployment records.
-#     """
-#     return [record for _, record in deployments.items()]
-
-# @query
-# def get_deployment_stats() -> dict:
-#     """
-#     Get statistics about deployments.
-#     """
-#     class Stats(Record):
-#         total_deployments: nat
-#         total_original_bytes: nat64
-#         total_compressed_bytes: nat64
-#         average_compression_ratio: float
+        return {"Err": f"Deployment failed: {str(e)}"}
     
-#     deployments_list = list(deployments.values())
-    
-#     if not deployments_list:
-#         return Stats(
-#             total_deployments=0,
-#             total_original_bytes=0,
-#             total_compressed_bytes=0,
-#             average_compression_ratio=0.0
-#         )
-    
-#     total_original = sum(d.original_size for d in deployments_list)
-#     total_compressed = sum(d.compressed_size for d in deployments_list)
-    
-#     return Stats(
-#         total_deployments=len(deployments_list),
-#         total_original_bytes=total_original,
-#         total_compressed_bytes=total_compressed,
-#         average_compression_ratio=total_compressed / total_original if total_original > 0 else 0.0
-#     )
-
-# @query
-# def get_deployment_by_hash(wasm_hash: str) -> Vec[DeploymentRecord]:
-#     """
-#     Find deployments by WASM hash prefix.
-#     """
-#     matching = []
-#     for key, record in deployments.items():
-#         if record.wasm_hash.startswith(wasm_hash):
-#             matching.append(record)
-#     return matching
