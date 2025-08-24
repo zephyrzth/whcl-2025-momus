@@ -1,20 +1,29 @@
+# -====================================== IMPORT =======================================
+from typing import List
+import json
 
 from kybra import (
-    Service, service_update, Principal, Async,
-    Record, Variant, Vec, Opt, update, query, match, ic, null, CallResult
+    Service, 
+    service_update, 
+    Principal, 
+    Async, 
+    update, 
+    query, 
+    match, 
+    ic, 
+    CallResult
 )
 
 from kybra.canisters.management import (
     HttpResponse,
-    HttpTransformArgs,
     management_canister
 )
 
 from llm import *
-from typing import List, Optional
-import json
-
 from model import *
+# -====================================== IMPORT =======================================
+
+# ====================================== METADATA ======================================
 
 __METADATA = create_function_tool(
     name="WeatherAgent",
@@ -46,11 +55,11 @@ def __is_all_required_params_present(params: List[dict]) -> bool:
         
     return True
 
-def __transform_params(params: List[dict]) -> dict:
-    return { p["name"]: p["value"] for p in params if p.get("value") is not None }
+# ====================================== METADATA ======================================
+
+# ===================================== TOOLS FUNC =====================================
 
 def __tool__get_weather(city_name: str) -> Async[ReturnType]:
-
 
     # Build the API URL
     base_url = "https://api.openweathermap.org/data/2.5/weather"
@@ -77,12 +86,20 @@ def __tool__get_weather(city_name: str) -> Async[ReturnType]:
     
     # Add cycles for the outcall
 
-    http_result: CallResult[HttpResponse] = yield management_canister.http_request(request_args).with_cycles(50_000_000)
+    http_result: CallResult[HttpResponse] = yield management_canister \
+        .http_request(request_args) \
+        .with_cycles(50_000_000)
 
     response = match(
         http_result,
         {
-            "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
+            # for testing using smaller data
+            "Ok": lambda ok: { 
+                "Ok":  json.dumps(
+                    json.loads(ok["body"].decode("utf-8") )['weather']
+                )
+            },
+            # "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
             "Err": lambda err: { "Err": str(err) }
         },
     )
@@ -112,69 +129,146 @@ __TOOLS = {
 def __get_tool_list() -> List[str]:
     return [ tool['metadata'] for tool in __TOOLS.values() ]
 
+# ===================================== TOOLS FUNC =====================================
+
+# ===================================== HELPER FUNC ====================================
+
+def __transform_params(params: List[dict]) -> dict:
+    return { p["name"]: p["value"] for p in params if p.get("value") is not None }
+
+def __parse_params(prompt: str) -> Async[ReturnType]:
+
+    ic.print(f"[ClientAgent] Parse Params - {prompt}")
+
+    llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
+
+    # Create messages
+    messages = [
+        create_system_message("You are a helpful assistant."),
+        create_user_message(prompt)
+    ]
+    
+    tools = __get_tool_list()
+
+    request = {
+        "model": "llama3.1:8b",
+        "tools": tools,
+        "messages": messages
+    }
+    
+    # Call service
+    response_stream = yield llm_service.v1_chat(request)
+
+    response = match(
+        response_stream,
+        {
+            "Ok": lambda ok: { "Ok": ok }, 
+            "Err": lambda err: { "Err": err }
+        }
+    )
+
+    return response
+
+def __result_refinement(results: str) -> Async[ReturnType]:
+    
+    ic.print(f"[ClientAgent] Result Refinement - {results}")
+
+    llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
+
+    # Create messages
+    messages = [
+        create_system_message("You are a helpful agent. Provide accurate weather info in sentences"),
+        create_user_message(f"Weather Data : {results}")
+    ]
+
+    request = {
+        "model": "llama3.1:8b",
+        "tools": None,
+        "messages": messages
+    }
+    
+    # Call service
+    response_stream = yield llm_service.v1_chat(request)
+
+    response = match(
+        response_stream,
+        {
+            "Ok": lambda ok: { "Ok": ok }, 
+            "Err": lambda err: { "Err": err }
+        }
+    )
+
+    return response
+
+def __call_tools(tool_calls: List[dict]) -> Async[list]:
+    
+    tool_results = []
+
+    for tool_desc in tool_calls:
+        tool = tool_desc.get("function", {})
+        tool_name = tool.get("name")
+        tool_args_list = tool.get("arguments", [])
+        tool_args = __transform_params(tool_args_list)
+
+        ic.print(f"[ClientAgent] Tool Name - {tool_name} - {tool_args}")
+
+        if tool_name in __TOOLS:
+
+            tool_response = yield __TOOLS[tool_name]["func"](**tool_args)
+            
+            if tool_response.get("Err") is not None:
+                return tool_response
+
+            tool_results.append(tool_response.get("Ok"))
+
+    return tool_results
+
+# ===================================== HELPER FUNC ====================================
+
+# ===================================== ROUTER MAIN ====================================
+
 @query
 def get_metadata() -> ReturnType:
+    """
+    Get metadata for the Agent.
+    """
     return { "Ok": json.dumps(__METADATA) }
 
 @update
 def execute_task(args: str) -> Async[ReturnType]:
+    """
+    Execute a agentic task.
+    Example args : `[{"name": "prompt", "value": "How is the weather in Jakarta ?"}]`
+    """
 
     ic.print(f"[ClientAgent] Execute Task - {args}")
 
     try:
         # Create service instance
-        llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
-
         params: List[dict] = json.loads(args)
         if not __is_all_required_params_present(params):
             return { "Err": "Missing required parameters" }
 
         parameters = __transform_params(params)
-        
-        # Create messages
-        messages = [
-            create_system_message("You are a helpful assistant."),
-            create_user_message(parameters.get("prompt"))
-        ]
-        
-        tools = __get_tool_list()
+        resp = yield __parse_params(parameters.get("prompt"))
 
-        ic.print(tools)
+        if resp.get("Err") is not None:
+            return resp
 
-        # Create request using ChatRequestV1 type
-        request = {
-            "model": "llama3.1:8b",
-            "tools": tools,
-            "messages": messages
-        }
-        
-        # Call service
-        response_steam = yield llm_service.v1_chat(request)
-        
-        response_raw = match(
-            response_steam, 
-            {
-                "Ok": lambda ok: { "Ok": ok }, 
-                "Err": lambda err: { "Err": err }
-            }
-        )
+        parsed_params = resp.get("Ok")
+        tool_results = yield __call_tools(parsed_params.get('message', {}).get("tool_calls", []))
+        compiled_result = '.'.join( tool_results )
 
-        if response_raw.get("Err") is not None:
-            return response_raw
-        
-        response = response_raw.get("Ok")
-    
-        ic.print(response)
-        
-        # # Process response
-        # if response and "message" in response:
-        #     message = response["message"]
-        #     return json.dumps({
-        #         "content": message.get("content"),
-        #         "tool_calls": message.get("tool_calls", [])
-        #     })
+        resp = yield __result_refinement(compiled_result)
 
-        return { "Ok": json.dumps(response) }
+        if resp.get("Err") is not None:
+            return resp
+        
+        final_result = resp.get("Ok").get('message', {}).get('content', '')
+
+        return { "Ok": final_result }
 
     except Exception as e:
         return { "Err": json.dumps({"error": str(e)}) }
+
+# ===================================== ROUTER MAIN ====================================
