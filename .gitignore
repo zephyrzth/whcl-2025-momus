@@ -24,4 +24,5 @@ dist/
 .pyenv
 .kybra
 *.wasm
+*.wasm.gz
 *.did
