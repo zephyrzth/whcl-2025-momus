@@ -11,42 +11,48 @@
     "agent-registry": {
       "type": "motoko",
       "main": "src/agents/agent_registry/main.mo",
-      "id": "be2us-64aaa-aaaaa-qaabq-cai"
+      "specified_id": "br5f7-7uaaa-aaaaa-qaaca-cai"
     },
     "agent-planner_agent": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/agents/planner_agent/main.mo",
-      "id": "bd3sg-teaaa-aaaaa-qaaba-cai"
+      "specified_id": "be2us-64aaa-aaaaa-qaabq-cai"
     },
     "agent-airquality_agent": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/agents/airquality_agent/main.mo",
-      "id": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+      "specified_id": "bd3sg-teaaa-aaaaa-qaaba-cai"
     },
     "agent-weather_agent": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/agents/weather_agent/main.mo",
-      "id": "br5f7-7uaaa-aaaaa-qaaca-cai"
+      "specified_id": "bw4dl-smaaa-aaaaa-qaacq-cai"
     },
-    "momus-token": {
-      "type": "motoko",
-      "main": "src/token/momus_token.mo",
-      "id": "by6od-j4aaa-aaaaa-qaadq-cai"
+    "icp_ledger": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icp-2025-08-15/ledger.did",
+      "wasm": "https://github.com/dfinity/ic/releases/download/ledger-suite-icp-2025-08-15/ledger-canister_notify-method.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+      },
+      "init_arg": "(variant { Init = record { minting_account = \"487e0cafd685bb3468f42b897c6ddb1c95eecaf1b6aa14a9df2fb525b6fc633a\"; initial_values = vec { record { \"8948e6ef5e46ccde67daef4c21b3c1c6435eb018f669d6a11a8a3ca2b78d0f1f\"; record { e8s = 10_000_000_000 : nat64; }; }; }; send_whitelist = vec {}; transfer_fee = opt record { e8s = 10_000 : nat64; }; token_symbol = opt \"LICP\"; token_name = opt \"Local ICP\"; } })"
     },
     "backend": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/backend/main.mo",
-      "id": "bw4dl-smaaa-aaaaa-qaacq-cai"
+      "specified_id": "by6od-j4aaa-aaaaa-qaadq-cai"
     },
     "frontend": {
       "dependencies": ["backend"],
       "type": "assets",
       "source": ["src/frontend/dist/"],
-      "id": "b77ix-eeaaa-aaaaa-qaada-cai"
+      "specified_id": "avqkn-guaaa-aaaaa-qaaea-cai"
     },
     "agentic-backend": {
       "type": "custom",
@@ -54,7 +60,8 @@
       "candid": ".kybra/agentic-backend/agentic-backend.did",
       "wasm": ".kybra/agentic-backend/agentic-backend.wasm",
       "gzip": true,
-      "metadata": [{ "name": "candid:service" }]
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "b77ix-eeaaa-aaaaa-qaada-cai"
     }
   },
   "defaults": {

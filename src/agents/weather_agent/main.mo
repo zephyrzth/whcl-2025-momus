@@ -18,7 +18,7 @@ import Cycles "mo:base/ExperimentalCycles";
 persistent actor WeatherAgent {
 
   // Initialize API Key Service to fetch keys from AgentRegistry
-  private transient let apiKeyService = ApiKeyService.ApiKeyService("be2us-64aaa-aaaaa-qaabq-cai");
+  private transient let apiKeyService = ApiKeyService.ApiKeyService("br5f7-7uaaa-aaaaa-qaaca-cai");
 
   // Type definition for the location response from LLM
   public type LocationResponse = {
@@ -91,8 +91,8 @@ persistent actor WeatherAgent {
   public query func get_owner() : async Principal {
     Principal.fromActor(WeatherAgent);
   };
-  // Default price: 1 MOMUS (1e8 base units)
-  public query func get_price() : async Nat { 100_000_000 };
+  // Default price: 0.01 ICP (1e8 base units)
+  public query func get_price() : async Nat { 1_000_000 };
 
   // Check if weather API is configured by checking if API key exists in registry
   public func is_weather_api_configured() : async Bool {
