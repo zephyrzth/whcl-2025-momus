@@ -17,7 +17,7 @@ import Cycles "mo:base/ExperimentalCycles";
 persistent actor AirQualityAgent {
 
   // Initialize API Key Service to fetch keys from AgentRegistry
-  private transient let apiKeyService = ApiKeyService.ApiKeyService("be2us-64aaa-aaaaa-qaabq-cai");
+  private transient let apiKeyService = ApiKeyService.ApiKeyService("br5f7-7uaaa-aaaaa-qaaca-cai");
 
   // HTTP Outcall types for external API calls
   public type HttpRequestArgs = {
