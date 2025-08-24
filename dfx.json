@@ -31,6 +31,11 @@
       "main": "src/agents/weather_agent/main.mo",
       "id": "br5f7-7uaaa-aaaaa-qaaca-cai"
     },
+    "momus-token": {
+      "type": "motoko",
+      "main": "src/token/momus_token.mo",
+      "id": "by6od-j4aaa-aaaaa-qaadq-cai"
+    },
     "backend": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",

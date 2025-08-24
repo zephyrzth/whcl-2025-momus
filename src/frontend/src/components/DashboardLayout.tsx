@@ -14,7 +14,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigationItems = [
     { id: "canvas", label: "Canvas", path: "/canvas" },
-    { id: "weather", label: "Weather Demo", path: "/weather" },
     { id: "marketplace", label: "Marketplace", path: "/marketplace" },
   ];
 
@@ -70,7 +69,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center space-x-4">
             <span className="hidden text-sm text-gray-300 sm:inline">
               Welcome,{" "}
-              {user?.displayName || user?.principalId?.slice(0, 8) + "..."}
+              {user?.displayName
+                ? `${user.displayName} (${user.principalId})`
+                : user?.principalId}
             </span>
             <button
               onClick={handleLogout}

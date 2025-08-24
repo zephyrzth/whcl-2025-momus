@@ -17,6 +17,7 @@ export interface ServiceResult<T> {
 class AuthService {
   private authClient: AuthClient | null = null;
   private static readonly USER_KEY = "momus_user";
+  private currentPrincipalId: string | null = null;
 
   async init(): Promise<void> {
     this.authClient = await AuthClient.create({
@@ -24,6 +25,31 @@ class AuthService {
         disableIdle: true, // Disable idle logout for simplicity
       },
     });
+    // Initialize current principal ID
+    this.currentPrincipalId = this.getPrincipalId();
+  }
+
+  hasIdentityChanged(): boolean {
+    const currentId = this.getPrincipalId();
+    const changed = currentId !== this.currentPrincipalId;
+    if (changed) {
+      console.log(
+        "[AUTH] Identity changed from",
+        this.currentPrincipalId,
+        "to",
+        currentId,
+      );
+      this.currentPrincipalId = currentId;
+    }
+    return changed;
+  }
+
+  getPrincipalId(): string | null {
+    if (!this.authClient) return null;
+    const identity = this.authClient.getIdentity();
+    const principalId = identity.getPrincipal().toString();
+    console.log("[DEBUG] Auth Service - Current Principal ID:", principalId);
+    return principalId;
   }
 
   async login(): Promise<ServiceResult<User>> {
@@ -83,15 +109,21 @@ class AuthService {
 
   async logout(): Promise<ServiceResult<boolean>> {
     try {
+      console.log("[DEBUG] Auth Service - Logging out current user");
       if (this.authClient) {
         await this.authClient.logout();
+        // Destroy the auth client instance to ensure fresh state for next login
+        this.authClient = null;
       }
       this.clearAuth();
+      await this.init(); // Reinitialize auth client after logout
       return { success: true, data: true };
     } catch (error) {
       console.error("Logout error:", error);
       // Still clear local auth even if logout fails
       this.clearAuth();
+      // Also destroy auth client on error
+      this.authClient = null;
       return { success: true, data: true };
     }
   }
@@ -101,7 +133,17 @@ class AuthService {
       if (!this.authClient) {
         await this.init();
       }
-      return this.authClient?.isAuthenticated() || false;
+      const isAuth = this.authClient?.isAuthenticated() || false;
+      if (isAuth) {
+        const principalId = this.getPrincipalId();
+        console.log("[DEBUG] Auth Check - Authenticated:", {
+          principalId,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        console.log("[DEBUG] Auth Check - Not authenticated");
+      }
+      return isAuth;
     } catch (error) {
       console.error("Error checking authentication:", error);
       return false;
@@ -110,12 +152,17 @@ class AuthService {
 
   async getOrCreateUserProfile(): Promise<ServiceResult<User>> {
     try {
+      const currentPrincipalId = this.getPrincipalId();
+      if (!currentPrincipalId) {
+        return { success: false, error: "No authenticated user found" };
+      }
+
       // First try to get existing profile
       const profileResult = await backend.getUserProfile();
 
       if ("ok" in profileResult) {
         const user: User = {
-          principalId: profileResult.ok.principalId.toString(),
+          principalId: currentPrincipalId,
           displayName: profileResult.ok.displayName[0] || undefined,
           createdAt: profileResult.ok.createdAt.toString(),
         };
@@ -127,11 +174,16 @@ class AuthService {
         "err" in profileResult &&
         profileResult.err === "User profile not found"
       ) {
+        const currentPrincipalId = this.getPrincipalId();
+        if (!currentPrincipalId) {
+          return { success: false, error: "No authenticated user found" };
+        }
+
         const createResult = await backend.createUserProfile([]);
 
         if ("ok" in createResult) {
           const user: User = {
-            principalId: createResult.ok.principalId.toString(),
+            principalId: currentPrincipalId,
             displayName: createResult.ok.displayName[0] || undefined,
             createdAt: createResult.ok.createdAt.toString(),
           };
@@ -154,11 +206,16 @@ class AuthService {
 
   async updateUserProfile(displayName: string): Promise<ServiceResult<User>> {
     try {
+      const currentPrincipalId = this.getPrincipalId();
+      if (!currentPrincipalId) {
+        return { success: false, error: "No authenticated user found" };
+      }
+
       const result = await backend.updateUserProfile([displayName]);
 
       if ("ok" in result) {
         const user: User = {
-          principalId: result.ok.principalId.toString(),
+          principalId: currentPrincipalId,
           displayName: result.ok.displayName[0] || undefined,
           createdAt: result.ok.createdAt.toString(),
         };
@@ -196,6 +253,7 @@ class AuthService {
 
   clearAuth(): void {
     localStorage.removeItem(AuthService.USER_KEY);
+    this.currentPrincipalId = null;
   }
 }
 

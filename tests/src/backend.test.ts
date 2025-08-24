@@ -112,12 +112,46 @@ describe("Vibe Coding Template Backend", () => {
       version: BigInt(1),
     };
 
-    it("should initially have no canvas state", async () => {
+    it("should initially have no canvas state for each user", async () => {
       const hasState = await actor.has_canvas_state();
       expect(hasState).toBe(false);
 
       const state = await actor.get_canvas_state();
-      expect(state).toEqual([]);
+      expect(state).toBeNull();
+    });
+
+    it("should save and load canvas state per user", async () => {
+      // Save state for user 1
+      const result = await actor.save_canvas_state(mockCanvasState);
+      expect(result).toBe(true);
+      const loaded = await actor.get_canvas_state();
+      expect(loaded).toEqual(mockCanvasState);
+    });
+
+    it("should isolate canvas state between users", async () => {
+      // Save state for user 1
+      await actor.save_canvas_state(mockCanvasState);
+      // Create a second user
+      const pic2 = await PocketIc.create(inject("PIC_URL"));
+      const fixture2 = await pic2.setupCanister<_SERVICE>({
+        idlFactory,
+        wasm: WASM_PATH,
+      });
+      const actor2 = fixture2.actor;
+      // User 2 should have no state
+      const hasState2 = await actor2.has_canvas_state();
+      expect(hasState2).toBe(false);
+      const state2 = await actor2.get_canvas_state();
+      expect(state2).toBeNull();
+      // User 2 saves their own state
+      const user2State = { ...mockCanvasState, version: BigInt(2) };
+      await actor2.save_canvas_state(user2State);
+      const loaded2 = await actor2.get_canvas_state();
+      expect(loaded2).toEqual(user2State);
+      // User 1's state should remain unchanged
+      const loaded1 = await actor.get_canvas_state();
+      expect(loaded1).toEqual(mockCanvasState);
+      await pic2.tearDown();
     });
 
     it("should save canvas state and return true", async () => {

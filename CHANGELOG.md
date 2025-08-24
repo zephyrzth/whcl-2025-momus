@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Remove Weather Demo menu and functionality
+
+### Fixed
+
+- Fix canvas state not being properly isolated between different user identities
+- Fix initial canvas state showing default agents for new users instead of an empty canvas
+
+### Added
+
+- Add per-user CanvasState storage and access in backend, isolating canvas data by logged-in ICP identity.
+- Add specification tests for MOMUS (ICRC-1/2) token usage fees via Planner Agent: on agent invocation, charge caller in MOMUS, split 90% to agent owner and 10% app fee to the provided app wallet. Tests currently fail pending implementation.
+- Implement minimal MOMUS token Motoko canister with ICRC-1 metadata and simplified ICRC-2 approve/transfer_from for local dev.
+- Extend AgentInterface with get_owner/get_price and implement in Weather and AirQuality agents.
+- Implement Planner Agent charging flow using MOMUS: when routing to an agent, deduct price from caller via transfer_from, split 90% to agent owner and 10% to app wallet.
+
 ### Added
 
 - Add Python agent creation feature with file upload and Pyodide compilation
@@ -32,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Fix authentication to properly handle different Internet Identity sessions and display full principal IDs
 - Modify Agent Canvas test execution to route directly to planner agent instead of using canvas routing logic
 
 - Add structured weather data parser for OpenWeatherMap API responses with typed Motoko records
