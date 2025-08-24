@@ -7,6 +7,13 @@ from llm import *
 from typing import List, Optional
 import json
 
+storage_name = []
+
+@update
+def greeting_name(name: str) -> str:
+    storage_name.append(name)
+    return f"Hello, {name}!"
+
 @update
 def call_llm_v1(user_input: str, use_tools: bool = False) -> Async[str]:
     """Call LLM using the class-based types"""
