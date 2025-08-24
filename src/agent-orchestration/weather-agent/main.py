@@ -94,12 +94,12 @@ def __tool__get_weather(city_name: str) -> Async[ReturnType]:
         http_result,
         {
             # for testing using smaller data
-            "Ok": lambda ok: { 
-                "Ok":  json.dumps(
-                    json.loads(ok["body"].decode("utf-8") )['weather']
-                )
-            },
-            # "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
+            # "Ok": lambda ok: { 
+            #     "Ok":  json.dumps(
+            #         json.loads(ok["body"].decode("utf-8") )['weather']
+            #     )
+            # },
+            "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
             "Err": lambda err: { "Err": str(err) }
         },
     )
@@ -177,7 +177,7 @@ def __result_refinement(results: str) -> Async[ReturnType]:
 
     # Create messages
     messages = [
-        create_system_message("You are a helpful agent. Provide accurate weather info in sentences"),
+        create_system_message("You are a helpful agent. Provide accurate weather info in one paragraph."),
         create_user_message(f"Weather Data : {results}")
     ]
 
