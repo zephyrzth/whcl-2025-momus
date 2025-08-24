@@ -50,9 +50,17 @@
     },
     "agentic-backend": {
       "type": "custom",
-      "build": "bash build-python-canister.sh agentic-backend",
+      "build": "bash build-python-canister.sh '' agentic-backend",
       "candid": ".kybra/agentic-backend/agentic-backend.did",
       "wasm": ".kybra/agentic-backend/agentic-backend.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }]
+    },
+    "agentic-client-agent": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh agent-orchestration/ client-agent",
+      "candid": ".kybra/agent-orchestration/client-agent/client-agent.did",
+      "wasm": ".kybra/agent-orchestration/client-agent/client-agent.wasm",
       "gzip": true,
       "metadata": [{ "name": "candid:service" }]
     }
