@@ -22,20 +22,6 @@ if ! command -v python3 >/dev/null 2>&1; then
 	pip3 install kybra --break-system-packages;
 fi
 
-# Ensure venv package is available
-if ! python3 -m venv --help >/dev/null 2>&1; then
-	echo "   📦 Installing python3-venv..."
-	apt-get update -y && apt-get install -y python3-venv
-fi
-
-# Create and/or activate virtual environment for kybra
-if [ ! -d ".pyenv" ]; then
-	echo "   🆕 Creating virtual environment .pyenv"
-	python3 -m venv .pyenv;
-    pip3 install kybra --break-system-packages;
-fi
-source ./.pyenv/bin/activate
-
 # Stop any existing dfx processes and start clean
 echo "4️⃣ Stopping existing dfx processes..."
 dfx stop
