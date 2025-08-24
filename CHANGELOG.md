@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add per-user CanvasState storage and access in backend, isolating canvas data by logged-in ICP identity.
 - Integrate ICP Ledger (ICRC-1/2) payments in Planner Agent: charge caller in ICP via icrc2_transfer_from, split 90% to agent owner and 10% app fee via icrc1_transfer. Default price set to 0.01 ICP.
 - Extend AgentInterface with get_owner/get_price and implement in Weather and AirQuality agents.
- 
 
 ### Added
 

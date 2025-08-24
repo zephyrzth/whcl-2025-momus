@@ -40,7 +40,7 @@
           "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
         }
       },
-      "init_arg" : "(variant { Init = record { minting_account = \"487e0cafd685bb3468f42b897c6ddb1c95eecaf1b6aa14a9df2fb525b6fc633a\"; initial_values = vec { record { \"8948e6ef5e46ccde67daef4c21b3c1c6435eb018f669d6a11a8a3ca2b78d0f1f\"; record { e8s = 10_000_000_000 : nat64; }; }; }; send_whitelist = vec {}; transfer_fee = opt record { e8s = 10_000 : nat64; }; token_symbol = opt \"LICP\"; token_name = opt \"Local ICP\"; } })"
+      "init_arg": "(variant { Init = record { minting_account = \"487e0cafd685bb3468f42b897c6ddb1c95eecaf1b6aa14a9df2fb525b6fc633a\"; initial_values = vec { record { \"8948e6ef5e46ccde67daef4c21b3c1c6435eb018f669d6a11a8a3ca2b78d0f1f\"; record { e8s = 10_000_000_000 : nat64; }; }; }; send_whitelist = vec {}; transfer_fee = opt record { e8s = 10_000 : nat64; }; token_symbol = opt \"LICP\"; token_name = opt \"Local ICP\"; } })"
     },
     "backend": {
       "dependencies": ["llm", "agent-registry"],
