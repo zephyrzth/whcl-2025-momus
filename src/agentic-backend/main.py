@@ -109,7 +109,7 @@ deployments = StableBTreeMap[str, DeploymentRecord](
 )
 
 @update
-def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
+def deploy_gzipped_wasm(gzipped_wasm: blob) -> Async[DeployResult]:
     """
     Accepts a gzipped WASM module and deploys it as a new canister.
     """
@@ -153,7 +153,13 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         # Create new canister with cycles
         cycles_to_send = 100_000_000_000  # 0.1T cycles
         
-        create_result = management.create_canister(create_args).with_cycles128(cycles_to_send)
+        create_result_stream = yield management.create_canister(create_args).with_cycles128(cycles_to_send)
+        create_result_raw = match(create_result_stream, {"Ok": lambda data: { "err": None, "data": data }, "Err": lambda err: {"err": str(err), "data": None}})
+
+        if create_result_raw["err"]:
+            return {"Err": create_result_raw["err"]}
+    
+        create_result = create_result_raw["data"]
 
         ic.print(f"🆕 Created canister with cycles: {create_result}")
         
