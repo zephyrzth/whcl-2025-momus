@@ -11,6 +11,7 @@ storage_name = []
 
 @update
 def greeting_name(name: str) -> str:
+    ic.print(f"Greeting {name}")
     storage_name.append(name)
     return f"Hello, {name}!"
 
