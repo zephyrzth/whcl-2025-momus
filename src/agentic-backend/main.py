@@ -67,7 +67,7 @@ def call_llm_v1(user_input: str, use_tools: bool = False) -> Async[str]:
 
         response = match(response_raw, {"Ok": lambda ok: ok, "Err": lambda err: err})
 
-        print(response)
+        ic.print(response)
         
         # Process response
         if response and "message" in response:
@@ -105,11 +105,13 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
     """
     Accepts a gzipped WASM module and deploys it as a new canister.
     """
-    print("🚀 Starting deployment...")
+    ic.print("🚀 Starting deployment...")
 
     try:
         # Record compressed size
         compressed_size = len(gzipped_wasm)
+
+        ic.print(f"📦 Compressed size: {compressed_size} bytes")
         
         # Decompress the WASM
         try:
@@ -119,9 +121,13 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         
         # Record decompressed size
         original_size = len(wasm_module)
+
+        ic.print(f"📦 Original size: {original_size} bytes")
         
         # Calculate hash for tracking
         wasm_hash = hashlib.sha256(wasm_module).hexdigest()[:16]
+
+        ic.print(f"🔑 WASM hash: {wasm_hash}")
         
         # Get management canister
         management = ManagementCanister(Principal.from_str("aaaaa-aa"))
@@ -140,11 +146,15 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         cycles_to_send = 100_000_000_000  # 0.1T cycles
         
         create_result = management.create_canister(create_args).with_cycles128(cycles_to_send)
+
+        ic.print(f"🆕 Created canister with cycles: {create_result}")
         
         if not create_result:
             return {"Err": "Failed to create canister"}
         
         new_canister_id = create_result["canister_id"]
+        
+        ic.print(f"🆕 New canister ID: {new_canister_id}")
         
         # Install the WASM code
         install_args = {
@@ -169,8 +179,8 @@ def deploy_gzipped_wasm(gzipped_wasm: blob) -> DeployResult:
         deployment_id = f"{wasm_hash}_{ic.time()}"
         deployments.insert(deployment_id, deployment)
         
-        print(f"✅ Deployed canister: {new_canister_id}")
-        print(f"📊 Original: {original_size} bytes, Compressed: {compressed_size} bytes")
+        ic.print(f"✅ Deployed canister: {new_canister_id}")
+        ic.print(f"📊 Original: {original_size} bytes, Compressed: {compressed_size} bytes")
         
         return {"Ok": deployment}
         
