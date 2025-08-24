@@ -58,3 +58,22 @@ class DeploymentRecord(Record):
 class DeployResult(Variant, total=False):
     Ok: DeploymentRecord
     Err: str
+
+# Upload session tracking
+class UploadSession(Record):
+    session_id: str
+    uploader: Principal
+    total_size: nat64
+    chunk_count: nat64
+    uploaded_chunks: nat64
+    created_at: nat64
+    completed: bool
+
+class ChunkUploadSuccess(Record):
+    chunk_index: nat64
+    uploaded_chunks: nat64
+    total_chunks: nat64
+
+class ChunkUploadResult(Variant, total=False):
+    Ok: ChunkUploadSuccess
+    Err: str
