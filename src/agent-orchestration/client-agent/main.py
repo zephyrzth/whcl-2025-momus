@@ -9,45 +9,43 @@ import json
 
 from model import *
 
-__REQUIRED_PARAMS = ["prompt"]
 
-@query
-def get_metadata() -> ReturnType:
-
-    metadata = create_function_tool(
-        name="client_agent",
-        description="Calling Agentic AI for planning and routing to other agent",
-        params={
-            "type": "object",
-            "properties": {
-                "prompt": {
-                    "type": "string",
-                    "description": "User input prompt"
-                },
-                "connected_agent_list": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "List of connected agent names available for use"
-                },
+__METADATA = create_function_tool(
+    name="client_agent",
+    description="Calling Agentic AI for planning and routing to other agent",
+    params={
+        "type": "object",
+        "properties": {
+            "prompt": {
+                "type": "string",
+                "description": "User input prompt"
             },
-            "required": __REQUIRED_PARAMS
-        }
-    )
+            "connected_agent_list": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "List of connected agent names available for use"
+            },
+        },
+        "required": ["prompt"]
+    }
+)
 
-    return { "Ok": json.dumps(metadata) }
+def __is_all_required_params_present(params: List[dict]) -> bool:
 
-def is_all_required_params_present(params: List[dict]) -> bool:
-
-    for param in __REQUIRED_PARAMS:
+    for param in __METADATA['function']['parameters']['required'] or []:
         if not any(p.get("name") == param for p in params):
             return False
         
     return True
 
-def transform_params(params: List[dict]) -> dict:
+def __transform_params(params: List[dict]) -> dict:
     return { p["name"]: p["value"] for p in params if p.get("value") is not None }
+
+@query
+def get_metadata() -> ReturnType:
+    return { "Ok": json.dumps(__METADATA) }
 
 @update
 def execute_task(args: str) -> Async[ReturnType]:
@@ -59,10 +57,10 @@ def execute_task(args: str) -> Async[ReturnType]:
         llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
 
         params: List[dict] = json.loads(args)
-        if not is_all_required_params_present(params):
+        if not __is_all_required_params_present(params):
             return { "Err": "Missing required parameters" }
 
-        parameters = transform_params(params)
+        parameters = __transform_params(params)
         
         # Create messages
         messages = [
