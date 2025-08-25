@@ -10,6 +10,7 @@ dfx build
 
 # Deploy all canisters
 echo "3️⃣ Deploying all canisters..."
+dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger
 dfx deploy
 
 # Wait and verify deployment completed
