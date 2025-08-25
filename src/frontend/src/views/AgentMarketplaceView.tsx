@@ -224,10 +224,12 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
                 <button
                   onClick={() => {
                     if (!isAuthenticated) {
-                      setCreateError("Please sign in first to upload WASM files.");
+                      setCreateError(
+                        "Please sign in first to upload WASM files.",
+                      );
                       return;
                     }
-                    fileInputRef.current?.click()
+                    fileInputRef.current?.click();
                   }}
                   className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={!isAuthenticated}
