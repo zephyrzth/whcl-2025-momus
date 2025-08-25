@@ -1,6 +1,4 @@
 import LLM "mo:llm";
-import AgentInterface "../../shared/AgentInterface";
-import ApiKeyService "../../services/ApiKeyService";
 import Text "mo:base/Text";
 import Float "mo:base/Float";
 import Result "mo:base/Result";
@@ -16,9 +14,17 @@ import Principal "mo:base/Principal";
 import Cycles "mo:base/ExperimentalCycles";
 
 persistent actor WeatherAgent {
+  public type AgentMetadata = {
+    name : Text;
+    description : Text;
+  };
 
-  // Initialize API Key Service to fetch keys from AgentRegistry
-  private transient let apiKeyService = ApiKeyService.ApiKeyService("br5f7-7uaaa-aaaaa-qaaca-cai");
+  public type AgentInterface = actor {
+    get_metadata : query () -> async AgentMetadata;
+    execute_task : (Text) -> async Text;
+    get_owner : query () -> async Principal;
+    get_price : query () -> async Nat;
+  };
 
   // Type definition for the location response from LLM
   public type LocationResponse = {
@@ -80,7 +86,7 @@ persistent actor WeatherAgent {
     http_request : HttpRequestArgs -> async HttpResponsePayload;
   };
 
-  public query func get_metadata() : async AgentInterface.AgentMetadata {
+  public query func get_metadata() : async AgentMetadata {
     {
       name = "Weather Agent";
       description = "Provides real-time weather information for cities using OpenWeatherMap API";
@@ -94,70 +100,58 @@ persistent actor WeatherAgent {
   // Default price: 0.01 ICP (1e8 base units)
   public query func get_price() : async Nat { 1_000_000 };
 
-  // Check if weather API is configured by checking if API key exists in registry
-  public func is_weather_api_configured() : async Bool {
-    await apiKeyService.hasApiKey("openweathermap");
-  };
-
   public func execute_task(prompt : Text) : async Text {
-    // Check if API key is configured and get it
-    switch (await apiKeyService.getApiKeyOrFail("openweathermap")) {
-      case (#err(error)) {
-        return "API key not configured: " # error # ". Please configure the weather API key first.";
-      };
-      case (#ok(apiKey)) {
-        try {
-          let locationData = await get_location_data_via_llm(prompt);
-          switch (locationData.message) {
-            case "success" {
-              // Call weather API with extracted location data
-              if (locationData.city != "") {
-                // Fetch weather data by city name
-                let weatherData = await get_weather_via_http_outcall(locationData.city, "city", apiKey);
-                Debug.print("🔍 DEBUG: Weather data response: " # debug_show (weatherData));
-                switch (weatherData) {
-                  case (#ok(parsedData)) {
-                    // Convert parsed data to JSON string for LLM
-                    let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
-                    let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
-                    return weatherRecommendation; // Return the recommendation from LLM
-                  };
-                  case (#err(error)) "Error fetching weather data: " # error;
-                };
-              } else if (locationData.latlon.size() == 2) {
-                // Fetch weather data by coordinates
-                let lat = Float.toText(locationData.latlon[0]);
-                let lon = Float.toText(locationData.latlon[1]);
-                let latlonString = lat # "," # lon;
-                let weatherData = await get_weather_via_http_outcall(latlonString, "coordinates", apiKey);
-                Debug.print("🔍 DEBUG: Weather data response: " # debug_show (weatherData));
-                switch (weatherData) {
-                  case (#ok(parsedData)) {
-                    // Convert parsed data to JSON string for LLM
-                    let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
-                    let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
-                    return weatherRecommendation; // Return the recommendation from LLM
-                  };
-                  case (#err(error)) "Error fetching weather data: " # error;
-                };
-              } else {
-                "No valid location data provided";
+    let apiKey = "2b11c2a05b23b49985529c06d7c96b24";
+    try {
+      let locationData = await get_location_data_via_llm(prompt);
+      switch (locationData.message) {
+        case "success" {
+          // Call weather API with extracted location data
+          if (locationData.city != "") {
+            // Fetch weather data by city name
+            let weatherData = await get_weather_via_http_outcall(locationData.city, "city", apiKey);
+            Debug.print("🔍 DEBUG: Weather data response: " # debug_show (weatherData));
+            switch (weatherData) {
+              case (#ok(parsedData)) {
+                // Convert parsed data to JSON string for LLM
+                let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
+                let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
+                return weatherRecommendation; // Return the recommendation from LLM
               };
+              case (#err(error)) "Error fetching weather data: " # error;
             };
-
-            case "failed" {
-              return "Failed to fetch weather data: " # locationData.reason;
+          } else if (locationData.latlon.size() == 2) {
+            // Fetch weather data by coordinates
+            let lat = Float.toText(locationData.latlon[0]);
+            let lon = Float.toText(locationData.latlon[1]);
+            let latlonString = lat # "," # lon;
+            let weatherData = await get_weather_via_http_outcall(latlonString, "coordinates", apiKey);
+            Debug.print("🔍 DEBUG: Weather data response: " # debug_show (weatherData));
+            switch (weatherData) {
+              case (#ok(parsedData)) {
+                // Convert parsed data to JSON string for LLM
+                let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
+                let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
+                return weatherRecommendation; // Return the recommendation from LLM
+              };
+              case (#err(error)) "Error fetching weather data: " # error;
             };
-
-            case (_) {
-              return "Internal Error: Unable to process the request.";
-            };
+          } else {
+            "No valid location data provided";
           };
-        } catch (error) {
-          Debug.print("Error: " # Error.message(error));
-          return "I'm sorry, I'm experiencing technical difficulties. Please try again later.";
+        };
+
+        case "failed" {
+          return "Failed to fetch weather data: " # locationData.reason;
+        };
+
+        case (_) {
+          return "Internal Error: Unable to process the request.";
         };
       };
+    } catch (error) {
+      Debug.print("Error: " # Error.message(error));
+      return "I'm sorry, I'm experiencing technical difficulties. Please try again later.";
     };
   };
 

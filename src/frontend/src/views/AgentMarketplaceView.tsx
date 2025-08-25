@@ -47,7 +47,7 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
         "size:",
         file.size,
       );
-      const result = await wasmDeploymentService.deployGzippedWasm(
+      const result = await wasmDeploymentService.deployRawWasm(
         file,
         (progress) => {
           console.log("[DEBUG] Upload progress:", progress);
@@ -216,7 +216,7 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
               <div className="relative">
                 <input
                   type="file"
-                  accept=".wasm.gz,.gz"
+                  accept=".wasm"
                   onChange={handleWasmUpload}
                   ref={fileInputRef}
                   className="hidden"

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add WASM upload button in Agent Marketplace for deploying gzipped WASM files
 - Add chunked file upload support for WASM deployment with progress tracking
+- Add Motoko backend APIs to upload raw WASM in chunks and deploy to a new canister (single-shot install, 0.7T cycles)
 
 ### Changed
 
