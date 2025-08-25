@@ -47,7 +47,7 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
         "size:",
         file.size,
       );
-  const result = await wasmDeploymentService.deployRawWasm(
+      const result = await wasmDeploymentService.deployRawWasm(
         file,
         (progress) => {
           console.log("[DEBUG] Upload progress:", progress);

@@ -49,8 +49,8 @@ export const wasmDeploymentService = {
       );
 
       // Start upload session
-  const backendAny = backend as any;
-  const sessionId = await backendAny.start_chunk_upload(
+      const backendAny = backend as any;
+      const sessionId = await backendAny.start_chunk_upload(
         BigInt(uint8Array.length),
         BigInt(totalChunks),
       );
@@ -64,7 +64,7 @@ export const wasmDeploymentService = {
         const end = Math.min(start + CHUNK_SIZE, uint8Array.length);
         const chunk = uint8Array.slice(start, end);
 
-  const uploadResult = await backendAny.upload_chunk(
+        const uploadResult = await backendAny.upload_chunk(
           sessionId,
           BigInt(i),
           chunk,
@@ -99,7 +99,7 @@ export const wasmDeploymentService = {
 
       // Deploy from chunks
       console.log("[DEBUG] Starting deployment from chunks");
-  const result = await backendAny.deploy_from_chunks(sessionId);
+      const result = await backendAny.deploy_from_chunks(sessionId);
 
       if ("ok" in result) {
         console.log("[DEBUG] Deployment successful:", result.ok);
@@ -109,7 +109,10 @@ export const wasmDeploymentService = {
         };
       }
 
-      console.error("[DEBUG] Deployment error from backend:", (result as any).err);
+      console.error(
+        "[DEBUG] Deployment error from backend:",
+        (result as any).err,
+      );
       return {
         success: false,
         error: (result as any).err,
