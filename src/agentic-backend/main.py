@@ -149,8 +149,8 @@ def upload_chunk(session_id: str, chunk_index: nat64, chunk_data: blob) -> Chunk
     session = session_opt
     
     # Validate uploader
-    if session["uploader"] != ic.caller():
-        return {"Err": "Unauthorized uploader"}
+    # if session["uploader"] != ic.caller():
+    #     return {"Err": "Unauthorized uploader"}
     
     # Validate session not completed
     if session["completed"]:
@@ -197,8 +197,8 @@ def deploy_from_chunks(session_id: str) -> Async[DeployResult]:
         session = session_opt
         
         # Validate uploader
-        if session["uploader"] != ic.caller():
-            return {"Err": "Unauthorized"}
+        # if session["uploader"] != ic.caller():
+        #     return {"Err": "Unauthorized"}
         
         # Validate all chunks uploaded
         if session["uploaded_chunks"] != session["chunk_count"]:
