@@ -1,6 +1,7 @@
 # -====================================== IMPORT =======================================
 from typing import List
 import json
+from webbrowser import get
 
 from kybra import (
     Service, 
@@ -26,8 +27,8 @@ from model import *
 # ====================================== METADATA ======================================
 
 __METADATA = create_function_tool(
-    name="WeatherAgent",
-    description="Agentic AI for weather-related tasks",
+    name="AirQualityAgent",
+    description="Agentic AI for air quality-related tasks",
     params={
         "type": "object",
         "properties": {
@@ -59,16 +60,85 @@ def __is_all_required_params_present(params: List[dict]) -> bool:
 
 # ===================================== TOOLS FUNC =====================================
 
-def __tool__get_weather(city_name: str) -> Async[ReturnType]:
+def __get_lat_long_from_city_name(city_name: str) -> Async[ReturnType]:
 
     # Build the API URL
-    base_url = "https://api.openweathermap.org/data/2.5/weather"
+    base_url = "https://api.openweathermap.org/geo/1.0/direct"
     
     # Parameters
     params = {
         "q": city_name,
         "appid": '2b11c2a05b23b49985529c06d7c96b24',
-        "units": "metric"
+        "limit": "1"
+    }
+    
+    # Construct full URL
+    query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+    full_url = f"{base_url}?{query_string}"
+
+    request_args = {
+        "url": full_url,
+        "max_response_bytes": 4096,
+        "headers": [],
+        "body": None,
+        "method": {"get": None},
+        "transform": None
+    }
+
+    ic.print(request_args)
+    
+    # Add cycles for the outcall
+
+    http_result: CallResult[HttpResponse] = yield management_canister \
+        .http_request(request_args) \
+        .with_cycles(50_000_000)
+    
+    response = match(
+        http_result,
+        {
+            "Ok": lambda ok: { 
+                # "Ok":  json.dumps(
+                #     {
+                #         "lat": json.loads( ok["body"].decode("utf-8") )['lat'],
+                #         "lon": json.loads( ok["body"].decode("utf-8") )['lon'],
+                #         "country": json.loads( ok["body"].decode("utf-8") )['country']
+                #     }
+                # )
+                'Ok': ok["body"].decode("utf-8")
+            },
+            "Err": lambda err: { "Err": str(err) }
+        },
+    )
+
+    ic.print(response.get("Ok"))
+    ic.print(type(response.get("Ok")))
+
+    if response.get("Err") is not None:
+        ic.print( f"[AirQualityAgent] Error fetching city coordinates - {response.get('Err')}")
+
+    return response
+
+def __tool__get_air_quality(city_name: str) -> Async[ReturnType]:
+
+    city_coordinates_stream = yield __get_lat_long_from_city_name(city_name)
+
+    if city_coordinates_stream.get("Err") is not None:
+        return city_coordinates_stream
+
+    ic.print(city_coordinates_stream)
+
+    city_coordinates = json.loads(city_coordinates_stream.get("Ok"))
+
+    ic.print(city_coordinates)
+
+    # Build the API URL
+    base_url = "https://api.openweathermap.org/data/2.5/air_pollution"
+    
+    # Parameters
+    params = {
+        "lat": city_coordinates['lat'],
+        "lon": city_coordinates['lon'],
+        "appid": '2b11c2a05b23b49985529c06d7c96b24'
     }
     
     # Construct full URL
@@ -105,16 +175,16 @@ def __tool__get_weather(city_name: str) -> Async[ReturnType]:
     )
 
     if response.get("Err") is not None:
-        ic.print(f"[WeatherAgent] Error fetching weather data: {response.get('Err')}")
+        ic.print( f"[AirQualityAgent] Error fetching air quality data - {response.get('Err')}")
 
     return response
 
 __TOOLS = {
-    "get_weather": {
-        "func" : __tool__get_weather,
+    "get_air_quality": {
+        "func" : __tool__get_air_quality,
         "metadata" : create_function_tool(
-            name="get_weather",
-            description="a function tool to get current weather",
+            name="get_air_quality",
+            description="a function tool to get current air quality",
             params={
                 "type": "object",
                 "properties": {
@@ -141,7 +211,7 @@ def __transform_params(params: List[dict]) -> dict:
 
 def __parse_params(prompt: str) -> Async[ReturnType]:
 
-    ic.print(f"[WeatherAgent] Parse Params - {prompt}")
+    ic.print(f"[AirQualityAgent] Parse Params - {prompt}")
 
     llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
 
@@ -174,13 +244,13 @@ def __parse_params(prompt: str) -> Async[ReturnType]:
 
 def __result_refinement(results: str) -> Async[ReturnType]:
     
-    ic.print(f"[WeatherAgent] Result Refinement - {results}")
+    ic.print(f"[AirQualityAgent] Result Refinement - {results}")
 
     llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
 
     # Create messages
     messages = [
-        create_system_message("You are a helpful agent. Provide accurate weather info in one paragraph."),
+        create_system_message("You are a helpful agent. Provide accurate air quality info in one paragraph."),
         create_user_message(f"Weather Data : {results}")
     ]
 
@@ -213,7 +283,7 @@ def __call_tools(tool_calls: List[dict]) -> Async[list]:
         tool_args_list = tool.get("arguments", [])
         tool_args = __transform_params(tool_args_list)
 
-        ic.print(f"[WeatherAgent] Tool Name - {tool_name} - {tool_args}")
+        ic.print(f"[AirQualityAgent] Tool Name - {tool_name} - {tool_args}")
 
         if tool_name in __TOOLS:
 
@@ -241,10 +311,10 @@ def get_metadata() -> ReturnType:
 def execute_task(args: str) -> Async[ReturnType]:
     """
     Execute a agentic task.
-    Example args : `[{"name": "prompt", "value": "How is the weather in Jakarta ?"}]`
+    Example args : `[{"name": "prompt", "value": "How is the air quality in Jakarta ?"}]`
     """
 
-    ic.print(f"[WeatherAgent] Execute Task - {args}")
+    ic.print(f"[AirQualityAgent] Execute Task - {args}")
 
     try:
         # Create service instance

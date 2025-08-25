@@ -60,6 +60,14 @@
       "gzip": true,
       "metadata": [{ "name": "candid:service" }],
       "specified_id": "be2us-64aaa-aaaaa-qaabq-cai"
+    },
+    "agentic-airquality-agent": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh agent-orchestration/ airquality-agent",
+      "candid": ".kybra/agent-orchestration/airquality-agent/airquality-agent.did",
+      "wasm": ".kybra/agent-orchestration/airquality-agent/airquality-agent.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }]
     }
   },
   "defaults": {
