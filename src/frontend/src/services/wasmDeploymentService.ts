@@ -1,4 +1,4 @@
-import { agentic_backend } from "../../../declarations/agentic-backend";
+import { backend } from "../../../declarations/backend";
 import { authService } from "./authService";
 
 export interface DeploymentResult {
@@ -17,10 +17,11 @@ export interface ChunkUploadProgress {
 
 export type ProgressCallback = (progress: ChunkUploadProgress) => void;
 
-const CHUNK_SIZE = 500 * 1024; // 500KB chunks
+const CHUNK_SIZE = 500 * 1024; // 500KB chunks (<= 2MB backend limit)
 
 export const wasmDeploymentService = {
-  async deployGzippedWasm(
+  // Deploy raw WASM by chunking and invoking backend canister
+  async deployRawWasm(
     file: File,
     onProgress?: ProgressCallback,
   ): Promise<DeploymentResult> {
@@ -48,7 +49,8 @@ export const wasmDeploymentService = {
       );
 
       // Start upload session
-      const sessionId = await agentic_backend.start_chunk_upload(
+  const backendAny = backend as any;
+  const sessionId = await backendAny.start_chunk_upload(
         BigInt(uint8Array.length),
         BigInt(totalChunks),
       );
@@ -62,14 +64,14 @@ export const wasmDeploymentService = {
         const end = Math.min(start + CHUNK_SIZE, uint8Array.length);
         const chunk = uint8Array.slice(start, end);
 
-        const uploadResult = await agentic_backend.upload_chunk(
+  const uploadResult = await backendAny.upload_chunk(
           sessionId,
           BigInt(i),
           chunk,
         );
 
-        if ("Err" in uploadResult) {
-          throw new Error(`Chunk upload failed: ${uploadResult.Err}`);
+        if ("err" in uploadResult) {
+          throw new Error(`Chunk upload failed: ${uploadResult.err}`);
         }
 
         uploadedBytes += chunk.length;
@@ -97,20 +99,20 @@ export const wasmDeploymentService = {
 
       // Deploy from chunks
       console.log("[DEBUG] Starting deployment from chunks");
-      const result = await agentic_backend.deploy_from_chunks(sessionId);
+  const result = await backendAny.deploy_from_chunks(sessionId);
 
-      if ("Ok" in result) {
-        console.log("[DEBUG] Deployment successful:", result.Ok);
+      if ("ok" in result) {
+        console.log("[DEBUG] Deployment successful:", result.ok);
         return {
           success: true,
-          canisterId: result.Ok.canister_id,
+          canisterId: result.ok.canister_id,
         };
       }
 
-      console.error("[DEBUG] Deployment error from backend:", result.Err);
+      console.error("[DEBUG] Deployment error from backend:", (result as any).err);
       return {
         success: false,
-        error: result.Err,
+        error: (result as any).err,
       };
     } catch (error) {
       console.error("[DEBUG] Deployment error:", error);

@@ -52,14 +52,6 @@ export const backendService = {
   },
 
   /**
-   * Checks if the weather API is configured with an API key
-   * @returns Promise with boolean indicating if API is configured
-   */
-  async isWeatherApiConfigured(): Promise<boolean> {
-    return await agent_weather_agent.is_weather_api_configured();
-  },
-
-  /**
    * Gets weather data and clothing recommendations for a city using the execute_task function
    * @param location City name (e.g., "London", "New York")
    * @returns Promise with weather recommendations as text

@@ -100,11 +100,6 @@ persistent actor AirQualityAgent {
   };
   public query func get_price() : async Nat { 100_000_000 };
 
-  // Check if weather API is configured by checking if API key exists in registry
-  public func is_weather_api_configured() : async Bool {
-    await apiKeyService.hasApiKey("openweathermap");
-  };
-
   // Main function to execute the air quality task
   public func execute_task(userInput : Text) : async Text {
     // Check if API key is configured and get it

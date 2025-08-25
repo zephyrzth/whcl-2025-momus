@@ -7,7 +7,6 @@ import Error "mo:base/Error";
 import Array "mo:base/Array";
 import Json "mo:json";
 import Result "mo:base/Result";
-// import List "mo:base/List"; // not used currently
 import Principal "mo:base/Principal";
 import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
@@ -182,7 +181,7 @@ persistent actor PlannerAgent {
   };
 
   // Direct access to registry for canister resolution
-  private let registry : AgentRegistryInterface.AgentRegistryInterface = actor ("br5f7-7uaaa-aaaaa-qaaca-cai");
+  private let registry : AgentRegistryInterface.AgentRegistryInterface = actor ("umunu-kh777-77774-qaaca-cai");
 
   // Custom types for JSON parsing
   private type AgentInfo = {
