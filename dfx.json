@@ -8,29 +8,6 @@
       "type": "pull",
       "id": "w36hm-eqaaa-aaaal-qr76a-cai"
     },
-    "agent-registry": {
-      "type": "motoko",
-      "main": "src/agents/agent_registry/main.mo",
-      "id": "umunu-kh777-77774-qaaca-cai"
-    },
-    "agent-planner_agent": {
-      "dependencies": ["llm", "agent-registry"],
-      "type": "motoko",
-      "main": "src/agents/planner_agent/main.mo",
-      "id": "uzt4z-lp777-77774-qaabq-cai"
-    },
-    "agent-airquality_agent": {
-      "dependencies": ["llm", "agent-registry"],
-      "type": "motoko",
-      "main": "src/agents/airquality_agent/main.mo",
-      "id": "u6s2n-gx777-77774-qaaba-cai"
-    },
-    "agent-weather_agent": {
-      "dependencies": ["llm", "agent-registry"],
-      "type": "motoko",
-      "main": "src/agents/weather_agent/main.mo",
-      "id": "ulvla-h7777-77774-qaacq-cai"
-    },
     "icp_ledger": {
       "type": "custom",
       "candid": "https://github.com/dfinity/ic/releases/download/ledger-suite-icp-2025-08-15/ledger.did",
@@ -43,16 +20,61 @@
       "init_arg": "(variant { Init = record { minting_account = \"487e0cafd685bb3468f42b897c6ddb1c95eecaf1b6aa14a9df2fb525b6fc633a\"; initial_values = vec { record { \"8948e6ef5e46ccde67daef4c21b3c1c6435eb018f669d6a11a8a3ca2b78d0f1f\"; record { e8s = 10_000_000_000 : nat64; }; }; }; send_whitelist = vec {}; transfer_fee = opt record { e8s = 10_000 : nat64; }; token_symbol = opt \"LICP\"; token_name = opt \"Local ICP\"; } })"
     },
     "backend": {
-      "dependencies": ["llm", "agent-registry"],
+      "dependencies": ["llm"],
       "type": "motoko",
       "main": "src/backend/main.mo",
-      "id": "ucwa4-rx777-77774-qaada-cai"
+      "specified_id": "bw4dl-smaaa-aaaaa-qaacq-cai"
     },
     "frontend": {
       "dependencies": ["backend"],
       "type": "assets",
       "source": ["src/frontend/dist/"],
-      "id": "ufxgi-4p777-77774-qaadq-cai"
+      "specified_id": "b77ix-eeaaa-aaaaa-qaada-cai"
+    },
+    "agentic-backend": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh '' agentic-backend",
+      "candid": ".kybra/agentic-backend/agentic-backend.did",
+      "wasm": ".kybra/agentic-backend/agentic-backend.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+    },
+    "agentic-agent-registry": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh agent-orchestration/ agent-registry",
+      "candid": ".kybra/agent-orchestration/agent-registry/agent-registry.did",
+      "wasm": ".kybra/agent-orchestration/agent-registry/agent-registry.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "br5f7-7uaaa-aaaaa-qaaca-cai"
+    },
+    "agentic-client-agent": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh agent-orchestration/ client-agent",
+      "candid": ".kybra/agent-orchestration/client-agent/client-agent.did",
+      "wasm": ".kybra/agent-orchestration/client-agent/client-agent.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "bd3sg-teaaa-aaaaa-qaaba-cai"
+    },
+    "agentic-weather-agent": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh agent-orchestration/ weather-agent",
+      "candid": ".kybra/agent-orchestration/weather-agent/weather-agent.did",
+      "wasm": ".kybra/agent-orchestration/weather-agent/weather-agent.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "be2us-64aaa-aaaaa-qaabq-cai"
+    },
+    "agentic-airquality-agent": {
+      "type": "custom",
+      "build": "bash build-python-canister.sh agent-orchestration/ airquality-agent",
+      "candid": ".kybra/agent-orchestration/airquality-agent/airquality-agent.did",
+      "wasm": ".kybra/agent-orchestration/airquality-agent/airquality-agent.wasm",
+      "gzip": true,
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
     }
   },
   "defaults": {
@@ -63,5 +85,5 @@
   },
   "output_env_file": ".env",
   "version": 1,
-  "dfx": "0.29.0"
+  "dfx": "0.25.0"
 }
