@@ -1,5 +1,4 @@
 import LLM "mo:llm";
-import AgentInterface "../../shared/AgentInterface";
 import ApiKeyService "../../services/ApiKeyService";
 import Debug "mo:base/Debug";
 import Text "mo:base/Text";
@@ -15,6 +14,11 @@ import Principal "mo:base/Principal";
 import Cycles "mo:base/ExperimentalCycles";
 
 persistent actor AirQualityAgent {
+  // Candid-compatible return type: variant { Ok : opt text; Err : opt text }
+  public type ReturnType = {
+    #Ok : ?Text;
+    #Err : ?Text;
+  };
 
   // Initialize API Key Service to fetch keys from AgentRegistry
   private transient let apiKeyService = ApiKeyService.ApiKeyService("br5f7-7uaaa-aaaaa-qaaca-cai");
@@ -88,11 +92,9 @@ persistent actor AirQualityAgent {
     nh3 : Float;
   };
 
-  public query func get_metadata() : async AgentInterface.AgentMetadata {
-    {
-      name = "Air Quality Agent";
-      description = "Provides air quality information for cities using OpenWeatherMap API";
-    };
+  public query func get_metadata() : async ReturnType {
+    // Return plain JSON string describing this agent's callable function (same schema as WeatherAgent)
+    #Ok(?"{\"function\":{\"name\":\"airquality_agent\",\"description\":\"Provides air quality information for cities using OpenWeatherMap API\",\"parameters\":{\"type\":\"object\",\"properties\":[{\"name\":\"prompt\",\"type\":\"string\",\"description\":\"User input prompt\",\"enum\":null},{\"name\":\"connected_agent_list\",\"type\":\"array\",\"description\":\"List of connected agent names available for use\",\"enum\":null}],\"required\":[\"prompt\"]}}}");
   };
 
   public query func get_owner() : async Principal {
@@ -101,58 +103,52 @@ persistent actor AirQualityAgent {
   public query func get_price() : async Nat { 100_000_000 };
 
   // Main function to execute the air quality task
-  public func execute_task(userInput : Text) : async Text {
-    // Check if API key is configured and get it
-    switch (await apiKeyService.getApiKeyOrFail("openweathermap")) {
-      case (#err(error)) {
-        return "API key not configured: " # error # ". Please configure the weather API key first.";
-      };
-      case (#ok(apiKey)) {
-        try {
-          // Step 1: Extract city name from user prompt using LLM
-          let cityExtractionResponse = await extract_city_from_prompt(userInput);
+  public func execute_task(userInput : Text) : async ReturnType {
+    let apiKey = "2b11c2a05b23b49985529c06d7c96b24";
+    try {
+      // Step 1: Extract city name from user prompt using LLM
+      let cityExtractionResponse = await extract_city_from_prompt(userInput);
 
-          // Step 2: Parse the LLM response to get city name
-          let parseResult = await parse_city_extraction(cityExtractionResponse);
-          switch (parseResult) {
-            case (#ok(extraction)) {
-              if (extraction.message != "success") {
-                return "Unable to extract city information from your request.";
-              };
+      // Step 2: Parse the LLM response to get city name
+      let parseResult = await parse_city_extraction(cityExtractionResponse);
+      switch (parseResult) {
+        case (#ok(extraction)) {
+          if (extraction.message != "success") {
+            return #Err(?"Unable to extract city information from your request.");
+          };
 
-              Debug.print("Extracted city: " # extraction.city);
+          Debug.print("Extracted city: " # extraction.city);
 
-              // Step 3: Get latitude and longitude from geocoding API
-              let geoResult = await get_city_coordinates(extraction.city, apiKey);
-              switch (geoResult) {
-                case (#ok(location)) {
-                  // Step 4: Get air quality data using coordinates
-                  let airQualityResult = await get_air_quality_data(location.lat, location.lon, apiKey);
-                  switch (airQualityResult) {
-                    case (#ok(airData)) {
-                      // Step 5: Generate refined response using LLM
-                      return await generate_refined_response(location, airData, userInput);
-                    };
-                    case (#err(error)) {
-                      return "Failed to retrieve air quality data: " # error;
-                    };
-                  };
+          // Step 3: Get latitude and longitude from geocoding API
+          let geoResult = await get_city_coordinates(extraction.city, apiKey);
+          switch (geoResult) {
+            case (#ok(location)) {
+              // Step 4: Get air quality data using coordinates
+              let airQualityResult = await get_air_quality_data(location.lat, location.lon, apiKey);
+              switch (airQualityResult) {
+                case (#ok(airData)) {
+                  // Step 5: Generate refined response using LLM
+                  let msg = await generate_refined_response(location, airData, userInput);
+                  return #Ok(?msg);
                 };
                 case (#err(error)) {
-                  return "Failed to find location coordinates: " # error;
+                  return #Err(?("Failed to retrieve air quality data: " # error));
                 };
               };
             };
-            case (#err(errorMsg)) {
-              Debug.print("City extraction error: " # errorMsg);
-              return "Failed to understand the city in your request: " # errorMsg;
+            case (#err(error)) {
+              return #Err(?("Failed to find location coordinates: " # error));
             };
           };
-        } catch (error) {
-          Debug.print("Error: " # Error.message(error));
-          return "I'm sorry, I'm experiencing technical difficulties. Please try again later.";
+        };
+        case (#err(errorMsg)) {
+          Debug.print("City extraction error: " # errorMsg);
+          return #Err(?("Failed to understand the city in your request: " # errorMsg));
         };
       };
+    } catch (error) {
+      Debug.print("Error: " # Error.message(error));
+      return #Err(?"I'm sorry, I'm experiencing technical difficulties. Please try again later.");
     };
   };
 

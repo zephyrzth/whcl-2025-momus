@@ -14,14 +14,19 @@ import Principal "mo:base/Principal";
 import Cycles "mo:base/ExperimentalCycles";
 
 persistent actor WeatherAgent {
+  // Candid-compatible return type: variant { Ok : opt text; Err : opt text }
+  public type ReturnType = {
+    #Ok : ?Text;
+    #Err : ?Text;
+  };
   public type AgentMetadata = {
     name : Text;
     description : Text;
   };
 
   public type AgentInterface = actor {
-    get_metadata : query () -> async AgentMetadata;
-    execute_task : (Text) -> async Text;
+    get_metadata : query () -> async ReturnType;
+    execute_task : (Text) -> async ReturnType;
     get_owner : query () -> async Principal;
     get_price : query () -> async Nat;
   };
@@ -86,11 +91,9 @@ persistent actor WeatherAgent {
     http_request : HttpRequestArgs -> async HttpResponsePayload;
   };
 
-  public query func get_metadata() : async AgentMetadata {
-    {
-      name = "Weather Agent";
-      description = "Provides real-time weather information for cities using OpenWeatherMap API";
-    };
+  public query func get_metadata() : async ReturnType {
+    // Return plain JSON string describing this agent's callable function
+    #Ok(?"{\"function\":{\"name\":\"weather_agent\",\"description\":\"Provides weather information for cities using OpenWeatherMap API\",\"parameters\":{\"type\":\"object\",\"properties\":[{\"name\":\"prompt\",\"type\":\"string\",\"description\":\"User input prompt\",\"enum\":null},{\"name\":\"connected_agent_list\",\"type\":\"array\",\"description\":\"List of connected agent names available for use\",\"enum\":null}],\"required\":[\"prompt\"]}}}");
   };
 
   // Ownership and pricing for MOMUS charges
@@ -100,7 +103,7 @@ persistent actor WeatherAgent {
   // Default price: 0.01 ICP (1e8 base units)
   public query func get_price() : async Nat { 1_000_000 };
 
-  public func execute_task(prompt : Text) : async Text {
+  public func execute_task(prompt : Text) : async ReturnType {
     let apiKey = "2b11c2a05b23b49985529c06d7c96b24";
     try {
       let locationData = await get_location_data_via_llm(prompt);
@@ -116,9 +119,11 @@ persistent actor WeatherAgent {
                 // Convert parsed data to JSON string for LLM
                 let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
                 let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
-                return weatherRecommendation; // Return the recommendation from LLM
+                return #Ok(?weatherRecommendation); // Return the recommendation from LLM
               };
-              case (#err(error)) "Error fetching weather data: " # error;
+              case (#err(error)) {
+                return #Err(?("Error fetching weather data: " # error));
+              };
             };
           } else if (locationData.latlon.size() == 2) {
             // Fetch weather data by coordinates
@@ -132,26 +137,28 @@ persistent actor WeatherAgent {
                 // Convert parsed data to JSON string for LLM
                 let jsonText = "{\"weather\":[{\"description\":\"" # parsedData.description # "\"}],\"main\":{\"temp\":" # Float.toText(parsedData.temp) # ",\"feels_like\":" # Float.toText(parsedData.feels_like) # "},\"visibility\":" # Nat.toText(parsedData.visibility) # ",\"wind\":{\"speed\":" # Float.toText(parsedData.wind_speed) # "},\"name\":\"" # parsedData.city_name # "\"}";
                 let weatherRecommendation = await get_weather_recommendation_via_llm(jsonText);
-                return weatherRecommendation; // Return the recommendation from LLM
+                return #Ok(?weatherRecommendation); // Return the recommendation from LLM
               };
-              case (#err(error)) "Error fetching weather data: " # error;
+              case (#err(error)) {
+                return #Err(?("Error fetching weather data: " # error));
+              };
             };
           } else {
-            "No valid location data provided";
+            return #Err(?"No valid location data provided");
           };
         };
 
         case "failed" {
-          return "Failed to fetch weather data: " # locationData.reason;
+          return #Err(?("Failed to fetch weather data: " # locationData.reason));
         };
 
         case (_) {
-          return "Internal Error: Unable to process the request.";
+          return #Err(?"Internal Error: Unable to process the request.");
         };
       };
     } catch (error) {
       Debug.print("Error: " # Error.message(error));
-      return "I'm sorry, I'm experiencing technical difficulties. Please try again later.";
+      return #Err(?"I'm sorry, I'm experiencing technical difficulties. Please try again later.");
     };
   };
 
