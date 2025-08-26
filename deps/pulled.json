@@ -2,8 +2,8 @@
   "canisters": {
     "rdmx6-jaaaa-aaaaa-aaadq-cai": {
       "name": "internet_identity",
-      "wasm_hash": "8f04c2f99d9d1bf2e17dbceb01a2b1922e0e9adb4f5182cbf622ecf08979e2e3",
-      "wasm_hash_download": "8f04c2f99d9d1bf2e17dbceb01a2b1922e0e9adb4f5182cbf622ecf08979e2e3",
+      "wasm_hash": "e43612c989c35899308361d366d933c3b3af9669c9145ce6020d37fa36cc404f",
+      "wasm_hash_download": "e43612c989c35899308361d366d933c3b3af9669c9145ce6020d37fa36cc404f",
       "init_guide": "Use '(null)' for sensible defaults. See the candid interface for more details.",
       "init_arg": "(opt record { captcha_config = opt record { max_unsolved_captchas= 50:nat64; captcha_trigger = variant {Static = variant {CaptchaDisabled}}}})",
       "candid_args": "(opt InternetIdentityInit)",
@@ -11,7 +11,7 @@
     },
     "w36hm-eqaaa-aaaal-qr76a-cai": {
       "name": "llm",
-      "wasm_hash": "c0b83b556ab5f97198c6ac188827f043af758639dd5227bd3924a7c8062d44df",
+      "wasm_hash": "c17b2a04a812bbecb30a032d5a9e60b820a5c3daf73d0e05d298e39601930a42",
       "wasm_hash_download": "9fc6a172b13289428c6975895382c3c923fb641bcd8e8a5168469298c3cff310",
       "init_guide": "",
       "init_arg": null,

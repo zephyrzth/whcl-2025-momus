@@ -89,9 +89,6 @@ class LLMServiceV1(Service):
     def v1_chat(self, request: ChatRequestV1) -> ChatResponseV1:
         pass
 
-# Constants
-LLM_CANISTER_ID = "w36hm-eqaaa-aaaal-qr76a-cai"
-
 # llm_helpers_classes.py - Helper functions for the class-based types
 
 # Helper functions to create messages

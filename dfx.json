@@ -67,7 +67,8 @@
       "candid": ".kybra/agent-orchestration/airquality-agent/airquality-agent.did",
       "wasm": ".kybra/agent-orchestration/airquality-agent/airquality-agent.wasm",
       "gzip": true,
-      "metadata": [{ "name": "candid:service" }]
+      "metadata": [{ "name": "candid:service" }],
+      "specified_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
     }
   },
   "defaults": {

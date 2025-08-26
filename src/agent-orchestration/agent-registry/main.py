@@ -26,12 +26,10 @@ def get_agent_by_name(agent_name: str) -> ReturnType:
     if agent is None:
         return { "Err": f"Agent {agent_name} not found" }
     
-    ic.print(f"Found agent: {agent}")
     return { "Ok": json.dumps(agent) }
 
 @query
 def get_list_agents() -> ReturnType:
     agents = agent_registry.values()
-    ic.print(agents)
     data = [ agent for agent in agents ]
     return { "Ok": json.dumps(data) }

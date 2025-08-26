@@ -150,10 +150,6 @@ def create_function_tool(name: str, description: str = None, params: dict = None
     
     return tool
 
-
-# Constants
-LLM_CANISTER_ID = "w36hm-eqaaa-aaaal-qr76a-cai"
-
 # llm_helpers_classes.py - Helper functions for the class-based types
 
 # Helper functions to create messages
