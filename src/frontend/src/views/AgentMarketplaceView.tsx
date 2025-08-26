@@ -118,7 +118,9 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
 
       // Skip execute_task testing in frontend
       if (compilationResult.wasmData) {
-        console.log("Skipping execute_task test in frontend; metadata compiled.");
+        console.log(
+          "Skipping execute_task test in frontend; metadata compiled.",
+        );
       }
 
       // Here we would normally send the WASM data to the backend

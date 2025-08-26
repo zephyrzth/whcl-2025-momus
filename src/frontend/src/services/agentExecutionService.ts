@@ -15,7 +15,6 @@ export interface ExecutionResult {
  * based on the canvas configuration
  */
 export class AgentExecutionService {
-
   /**
    * Execute a user prompt using the current canvas configuration
    */

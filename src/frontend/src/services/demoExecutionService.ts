@@ -8,9 +8,14 @@ export class DemoExecutionService {
    * Execute a prompt using the current canvas configuration
    * This is the main interface for demo pages
    */
-  static async executeUserPrompt(_prompt: string): Promise<{ success: false; error: string }> {
+  static async executeUserPrompt(
+    _prompt: string,
+  ): Promise<{ success: false; error: string }> {
     // Execution removed from frontend
-    return { success: false, error: "Agent execution has been removed from the frontend." };
+    return {
+      success: false,
+      error: "Agent execution has been removed from the frontend.",
+    };
   }
 
   /**

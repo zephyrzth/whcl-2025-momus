@@ -249,8 +249,8 @@ agent = AgentWrapper()
       // Execute the Python code in Pyodide
       await this.pyodide.runPython(wrappedCode);
 
-  // Test the agent metadata function only
-  const metadata = await this.pyodide.runPython(`
+      // Test the agent metadata function only
+      const metadata = await this.pyodide.runPython(`
 import json
 
 output = ""
@@ -264,8 +264,8 @@ except Exception as e:
 output
       `);
 
-  // Removed execute_task test
-  const testTask = "execute_task test removed";
+      // Removed execute_task test
+      const testTask = "execute_task test removed";
 
       console.log("[DEBUG] metadata: ", metadata);
       // For now, we'll create a mock WASM representation since actual WASM compilation
