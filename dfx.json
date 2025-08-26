@@ -22,13 +22,14 @@
     "backend": {
       "dependencies": ["llm"],
       "type": "motoko",
-      "main": "src/backend/main.mo"
+      "main": "src/backend/main.mo",
+      "specified_id": "asrmz-lmaaa-aaaaa-qaaeq-cai"
     },
     "frontend": {
       "dependencies": ["backend"],
       "type": "assets",
       "source": ["src/frontend/dist/"],
-      "id": "b77ix-eeaaa-aaaaa-qaada-cai"
+      "specified_id": "a3shf-5eaaa-aaaaa-qaafa-cai"
     },
     "agentic-backend": {
       "type": "custom",
@@ -37,7 +38,7 @@
       "wasm": ".kybra/agentic-backend/agentic-backend.wasm",
       "gzip": true,
       "metadata": [{ "name": "candid:service" }],
-      "id": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+      "specified_id": "b77ix-eeaaa-aaaaa-qaada-cai"
     },
     "agentic-agent-registry": {
       "type": "custom",
@@ -46,7 +47,7 @@
       "wasm": ".kybra/agent-orchestration/agent-registry/agent-registry.wasm",
       "gzip": true,
       "metadata": [{ "name": "candid:service" }],
-      "id": "br5f7-7uaaa-aaaaa-qaaca-cai"
+      "specified_id": "br5f7-7uaaa-aaaaa-qaaca-cai"
     },
     "agentic-client-agent": {
       "type": "custom",
@@ -55,7 +56,7 @@
       "wasm": ".kybra/agent-orchestration/client-agent/client-agent.wasm",
       "gzip": true,
       "metadata": [{ "name": "candid:service" }],
-      "id": "bd3sg-teaaa-aaaaa-qaaba-cai"
+      "specified_id": "by6od-j4aaa-aaaaa-qaadq-cai"
     },
     "agentic-weather-agent": {
       "type": "custom",
@@ -64,7 +65,7 @@
       "wasm": ".kybra/agent-orchestration/weather-agent/weather-agent.wasm",
       "gzip": true,
       "metadata": [{ "name": "candid:service" }],
-      "id": "be2us-64aaa-aaaaa-qaabq-cai"
+      "specified_id": "avqkn-guaaa-aaaaa-qaaea-cai"
     },
     "agentic-airquality-agent": {
       "type": "custom",
@@ -73,18 +74,19 @@
       "wasm": ".kybra/agent-orchestration/airquality-agent/airquality-agent.wasm",
       "gzip": true,
       "metadata": [{ "name": "candid:service" }],
-      "id": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+      "specified_id": "bw4dl-smaaa-aaaaa-qaacq-cai"
     },
     "agent-weather_agent": {
       "dependencies": ["llm"],
       "type": "motoko",
       "main": "src/agents/weather_agent/main.mo",
-      "id": "ulvla-h7777-77774-qaacq-cai"
+      "specified_id": "be2us-64aaa-aaaaa-qaabq-cai"
     },
     "agent-airquality_agent": {
       "dependencies": ["llm"],
       "type": "motoko",
-      "main": "src/agents/airquality_agent/main.mo"
+      "main": "src/agents/airquality_agent/main.mo",
+      "specified_id": "bd3sg-teaaa-aaaaa-qaaba-cai"
     }
   },
   "defaults": {

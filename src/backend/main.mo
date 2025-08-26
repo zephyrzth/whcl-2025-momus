@@ -23,7 +23,7 @@ persistent actor Main {
   // Counter variable to keep track of count
   private var counter : Nat64 = 0;
 
-  let APP_WALLET : Principal = Principal.fromText("7qho5-xxgtn-z3lqg-ytfyb-avpre-4no2h-2ffxu-ihucl-3ude6-zaubo-mqe");
+  let APP_WALLET : Principal = Principal.fromText("5xui2-5tscz-g5fwh-fjoqc-w5dxz-llyxy-kxfmy-duqxk-nys4p-ondip-dae");
 
   type RegistryReturnType = { #Ok : ?Text; #Err : ?Text };
   // Common ReturnType used by agent canisters (client/weather/airquality)
@@ -34,7 +34,7 @@ persistent actor Main {
     register_agent : (Text, Text) -> async RegistryReturnType;
   };
 
-  let registry : AgentRegistry = actor ("bd3sg-teaaa-aaaaa-qaaba-cai");
+  
 
   // Canvas state storage per user
   private var canvasStatesEntries : [(Principal, CanvasState)] = [];
@@ -317,6 +317,7 @@ persistent actor Main {
   // API
   // Proxy to Agent Registry: return all registered agents as-is
   public shared func get_list_agents() : async RegistryReturnType {
+    let registry : AgentRegistry = actor ("cwrp5-kqaaa-aaaac-a4apa-cai");
     await registry.get_list_agents();
   };
 
@@ -364,7 +365,7 @@ persistent actor Main {
     type ClientAgent = actor {
       execute_task : (Text) -> async ReturnType;
     };
-    let client : ClientAgent = actor ("bw4dl-smaaa-aaaaa-qaacq-cai");
+    let client : ClientAgent = actor ("crqjj-hiaaa-aaaac-a4apq-cai");
     await client.execute_task(requestJson);
   };
 
@@ -515,6 +516,7 @@ persistent actor Main {
                 case (?agentName) {
                   Debug.print("[deploy] Extracted agent name: " # agentName);
                   try {
+                    let registry : AgentRegistry = actor ("cwrp5-kqaaa-aaaac-a4apa-cai");
                     let regRes = await registry.register_agent(agentName, Principal.toText(new_id));
                     switch (regRes) {
                       case (#Ok(_)) Debug.print("[deploy] Agent registered: " # agentName);

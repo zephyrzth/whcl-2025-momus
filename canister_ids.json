@@ -1,0 +1,17 @@
+{
+  "agentic-agent-registry": {
+    "ic": "cwrp5-kqaaa-aaaac-a4apa-cai"
+  },
+  "agentic-client-agent": {
+    "ic": "crqjj-hiaaa-aaaac-a4apq-cai"
+  },
+  "agentic-weather-agent": {
+    "ic": "hdj6e-xqaaa-aaaac-a4ara-cai"
+  },
+  "backend": {
+    "ic": "hnltm-maaaa-aaaac-a4aqa-cai"
+  },
+  "frontend": {
+    "ic": "hkkvy-byaaa-aaaac-a4aqq-cai"
+  }
+}
