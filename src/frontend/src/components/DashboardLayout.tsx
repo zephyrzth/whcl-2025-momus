@@ -187,7 +187,7 @@ function UserMenu() {
           <div className="space-y-3 text-sm">
             <div className="flex items-start justify-between gap-2">
               <div className="text-gray-400">Principal ID</div>
-              <div className="flex-1 break-all text-right text-white">
+              <div className="flex-1 text-right break-all text-white">
                 {principal}
               </div>
               <button
@@ -200,7 +200,7 @@ function UserMenu() {
 
             <div className="flex items-start justify-between gap-2">
               <div className="text-gray-400">Wallet (Account ID)</div>
-              <div className="flex-1 break-all text-right text-white">
+              <div className="flex-1 text-right break-all text-white">
                 {accountId || (loading ? "Loading…" : "-")}
               </div>
               <button
