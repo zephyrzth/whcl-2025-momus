@@ -31,7 +31,7 @@ persistent actor PlannerAgent {
   // Fixed 10% fee
   let FEE_NUM : Nat = 10; // percent
   let FEE_DEN : Nat = 100;
-  let APP_WALLET : Principal = Principal.fromText("bacwk-6nib6-4xdaa-s6fj7-s3h6j-zdzd3-jxvfw-yf3ss-dt4if-h6p6w-lae");
+  let APP_WALLET : Principal = Principal.fromText("7qho5-xxgtn-z3lqg-ytfyb-avpre-4no2h-2ffxu-ihucl-3ude6-zaubo-mqe");
 
   private func compute_fee(amount : Nat) : Nat {
     (amount * FEE_NUM) / FEE_DEN;

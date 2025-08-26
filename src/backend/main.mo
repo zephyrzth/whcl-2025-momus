@@ -14,13 +14,15 @@ import Principal "mo:base/Principal";
 import Debug "mo:base/Debug";
 import Blob "mo:base/Blob";
 import Array "mo:base/Array";
-// no ExperimentalCycles; use (with cycles = ...) call syntax
+import Cycles "mo:base/ExperimentalCycles";
+import Json "mo:json";
+import Error "mo:base/Error";
 
 persistent actor Main {
   // Counter variable to keep track of count
   private var counter : Nat64 = 0;
 
-  let APP_WALLET : Principal = Principal.fromText("bacwk-6nib6-4xdaa-s6fj7-s3h6j-zdzd3-jxvfw-yf3ss-dt4if-h6p6w-lae");
+  let APP_WALLET : Principal = Principal.fromText("7qho5-xxgtn-z3lqg-ytfyb-avpre-4no2h-2ffxu-ihucl-3ude6-zaubo-mqe");
 
   // Canvas state storage per user
   private var canvasStatesEntries : [(Principal, CanvasState)] = [];
@@ -395,7 +397,8 @@ persistent actor Main {
             freezing_threshold = null;
           };
         };
-        let create_res = await (with cycles = cycles_to_send) ic.create_canister(create_args);
+        Cycles.add<system>(cycles_to_send);
+        let create_res = await ic.create_canister(create_args);
         let new_id = create_res.canister_id;
 
         // Install code (single-shot)
@@ -428,8 +431,75 @@ persistent actor Main {
           k += 1;
         };
         Debug.print("[deploy] Success; new canister " # Principal.toText(new_id));
+
+        // Best-effort post-deploy registration flow
+        do {
+          // Types to call the deployed agent and registry
+          type AgentReturnType = { #Ok : ?Text; #Err : ?Text };
+          type DeployedAgent = actor {
+            get_metadata : query () -> async AgentReturnType;
+          };
+          type RegistryReturnType = { #Ok : ?Text; #Err : ?Text };
+          type AgentRegistry = actor {
+            register_agent : (Text, Text) -> async RegistryReturnType;
+          };
+
+          let deployed : DeployedAgent = actor (Principal.toText(new_id));
+          // Query newly installed canister for its metadata
+          let meta = await deployed.get_metadata();
+          switch (meta) {
+            case (#Ok(?jsonTxt)) {
+              // Attempt to parse agent name from JSON
+              switch (extractAgentName(jsonTxt)) {
+                case (?agentName) {
+                  Debug.print("[deploy] Extracted agent name: " # agentName);
+                  let registry : AgentRegistry = actor ("bd3sg-teaaa-aaaaa-qaaba-cai");
+                  try {
+                    let regRes = await registry.register_agent(agentName, Principal.toText(new_id));
+                    switch (regRes) {
+                      case (#Ok(_)) Debug.print("[deploy] Agent registered: " # agentName);
+                      case (#Err(?e)) Debug.print("[deploy][warn] Registry returned error: " # e);
+                      case (#Err(null)) Debug.print("[deploy][warn] Registry returned unspecified error");
+                    };
+                  } catch (e) {
+                    Debug.print("[deploy][warn] Failed to register agent in registry: " # Error.message(e));
+                  };
+                };
+                case null Debug.print("[deploy][warn] Failed to extract agent name from metadata JSON");
+              };
+            };
+            case (#Ok(null)) Debug.print("[deploy][warn] get_metadata returned empty text");
+            case (#Err(?e)) Debug.print("[deploy][warn] get_metadata error: " # e);
+            case (#Err(null)) Debug.print("[deploy][warn] get_metadata error (unspecified)");
+          };
+        };
+
         #ok(record);
       };
+    };
+  };
+
+  // Helper to parse agent name from metadata JSON string
+  func extractAgentName(jsonText : Text) : ?Text {
+    switch (Json.parse(jsonText)) {
+      case (#ok(parsed)) {
+        switch (Json.getAsObject(parsed, "function")) {
+          case (#ok(funcObj)) {
+            var name : ?Text = null;
+            for ((k, v) in funcObj.vals()) {
+              if (k == "name") {
+                switch (v) {
+                  case (#string(t)) { name := ?t };
+                  case (_) {};
+                };
+              };
+            };
+            name;
+          };
+          case (#err(_)) null;
+        };
+      };
+      case (#err(_)) null;
     };
   };
 };
