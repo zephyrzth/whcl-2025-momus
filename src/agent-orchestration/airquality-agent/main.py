@@ -3,20 +3,12 @@ from typing import List
 import json
 
 from kybra import (
-    Service, 
-    service_update, 
     Principal, 
     Async, 
     update, 
     query, 
     match, 
-    ic, 
-    CallResult
-)
-
-from kybra.canisters.management import (
-    HttpResponse,
-    management_canister
+    ic
 )
 
 from metadata import *
@@ -27,6 +19,14 @@ from constants import *
 # -====================================== IMPORT =======================================
 
 # ===================================== ROUTER MAIN ====================================
+
+@query
+def get_owner() -> Principal:
+    return ic.id()
+
+@query
+def get_price() -> int:
+    return 1_000_000
 
 @query
 def get_metadata() -> ReturnType:

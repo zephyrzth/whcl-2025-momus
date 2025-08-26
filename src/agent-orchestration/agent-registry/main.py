@@ -1,9 +1,7 @@
 from kybra import (
-    update, query, Async, ic,
-    StableBTreeMap, blob
+    update, query, ic, StableBTreeMap, Principal
 )
 
-from typing import List, Optional
 import json
 
 from model import *
@@ -12,6 +10,14 @@ from model import *
 agent_registry = StableBTreeMap[str, AgentMetadata](
     memory_id=1, max_key_size=128, max_value_size=2_000_000  # ~2MB chunks
 )
+
+@query
+def get_owner() -> Principal:
+    return ic.id()
+
+@query
+def get_price() -> int:
+    return 1_000_000
 
 @update
 def register_agent(agent_name: str, canister_id: str) -> ReturnType:

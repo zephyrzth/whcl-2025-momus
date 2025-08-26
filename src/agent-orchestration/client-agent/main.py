@@ -1,7 +1,6 @@
 # -====================================== IMPORT =======================================
 from kybra import (
-    Service, service_update, Principal, Async,
-    Record, Variant, Vec, Opt, update, query, match, ic, null
+    Principal, Async, update, query, match, ic
 )
 
 from llm import *
@@ -14,6 +13,15 @@ from constants import *
 # -====================================== IMPORT =======================================
 
 # ===================================== ROUTER MAIN ====================================
+
+@query
+def get_owner() -> Principal:
+    return ic.id()
+
+@query
+def get_price() -> int:
+    return 1_000_000
+
 @query
 def get_metadata() -> ReturnType:
     """

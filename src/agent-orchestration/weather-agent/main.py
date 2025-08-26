@@ -19,6 +19,13 @@ from constants import *
 # -====================================== IMPORT =======================================
 
 # ===================================== ROUTER MAIN ====================================
+@query
+def get_owner() -> Principal:
+    return ic.id()
+
+@query
+def get_price() -> int:
+    return 1_000_000
 
 @query
 def get_metadata() -> ReturnType:

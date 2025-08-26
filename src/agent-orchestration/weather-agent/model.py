@@ -1,6 +1,6 @@
 
 from kybra import (
-    Service, service_update, service_query, Record, Opt, text, Variant
+    Service, service_update, service_query, Opt, Variant
 )
 
 from typing import List, Optional

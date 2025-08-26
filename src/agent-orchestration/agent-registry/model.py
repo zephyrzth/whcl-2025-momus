@@ -1,8 +1,6 @@
 
 from kybra import (
-    Service, service_update, service_query, Principal, Async,
-    Record, Variant, Vec, Opt, update, query, match, blob,
-    StableBTreeMap
+    Service, service_update, service_query, Record, Variant, Opt
 )
 
 class AgentMetadata(Record):
