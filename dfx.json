@@ -11,25 +11,25 @@
     "agent-registry": {
       "type": "motoko",
       "main": "src/agents/agent_registry/main.mo",
-      "specified_id": "umunu-kh777-77774-qaaca-cai"
+      "id": "umunu-kh777-77774-qaaca-cai"
     },
     "agent-planner_agent": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/agents/planner_agent/main.mo",
-      "specified_id": "uzt4z-lp777-77774-qaabq-cai"
+      "id": "uzt4z-lp777-77774-qaabq-cai"
     },
     "agent-airquality_agent": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/agents/airquality_agent/main.mo",
-      "specified_id": "u6s2n-gx777-77774-qaaba-cai"
+      "id": "u6s2n-gx777-77774-qaaba-cai"
     },
     "agent-weather_agent": {
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/agents/weather_agent/main.mo",
-      "specified_id": "ulvla-h7777-77774-qaacq-cai"
+      "id": "ulvla-h7777-77774-qaacq-cai"
     },
     "icp_ledger": {
       "type": "custom",
@@ -46,13 +46,13 @@
       "dependencies": ["llm", "agent-registry"],
       "type": "motoko",
       "main": "src/backend/main.mo",
-      "specified_id": "ucwa4-rx777-77774-qaada-cai"
+      "id": "ucwa4-rx777-77774-qaada-cai"
     },
     "frontend": {
       "dependencies": ["backend"],
       "type": "assets",
       "source": ["src/frontend/dist/"],
-      "specified_id": "ufxgi-4p777-77774-qaadq-cai"
+      "id": "ufxgi-4p777-77774-qaadq-cai"
     }
   },
   "defaults": {
