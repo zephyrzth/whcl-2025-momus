@@ -17,7 +17,7 @@ import Cycles "mo:base/ExperimentalCycles";
 persistent actor AirQualityAgent {
 
   // Initialize API Key Service to fetch keys from AgentRegistry
-  private transient let apiKeyService = ApiKeyService.ApiKeyService("be2us-64aaa-aaaaa-qaabq-cai");
+  private transient let apiKeyService = ApiKeyService.ApiKeyService("br5f7-7uaaa-aaaaa-qaaca-cai");
 
   // HTTP Outcall types for external API calls
   public type HttpRequestArgs = {
@@ -99,11 +99,6 @@ persistent actor AirQualityAgent {
     Principal.fromActor(AirQualityAgent);
   };
   public query func get_price() : async Nat { 100_000_000 };
-
-  // Check if weather API is configured by checking if API key exists in registry
-  public func is_weather_api_configured() : async Bool {
-    await apiKeyService.hasApiKey("openweathermap");
-  };
 
   // Main function to execute the air quality task
   public func execute_task(userInput : Text) : async Text {

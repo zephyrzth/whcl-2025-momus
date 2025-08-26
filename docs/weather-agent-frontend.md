@@ -19,7 +19,6 @@ Added new methods to the backend service:
 ```typescript
 // Weather API Configuration
 await backendService.initWeatherApi(apiKey: string)
-await backendService.isWeatherApiConfigured(): Promise<boolean>
 
 // Weather Data Retrieval
 await backendService.getWeatherByCity(location: string): Promise<WeatherResponse>

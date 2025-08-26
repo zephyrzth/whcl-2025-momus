@@ -61,16 +61,6 @@ describe("Weather Agent", () => {
     });
   });
 
-  describe("is_weather_api_configured", () => {
-    it("should return false when weather API is not configured", async () => {
-      // Execute
-      const isConfigured = await actor.is_weather_api_configured();
-
-      // Assert
-      expect(isConfigured).toBe(false);
-    });
-  });
-
   describe("execute_task", () => {
     it("should return API key not configured error when no API key is set", async () => {
       // Setup

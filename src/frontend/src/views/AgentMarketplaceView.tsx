@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { AgentCard, CreateAgentForm } from "../components";
 import {
   marketplaceAgents,
@@ -6,6 +6,8 @@ import {
   sortOptions,
 } from "../services/agentMarketplace";
 import { pythonCompilationService } from "../services/pythonCompilationService";
+import { wasmDeploymentService } from "../services/wasmDeploymentService";
+import { useAuth } from "../contexts/AuthContext";
 
 interface AgentMarketplaceViewProps {
   onError: (error: string) => void;
@@ -13,12 +15,74 @@ interface AgentMarketplaceViewProps {
 }
 
 export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
+  const { isAuthenticated } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedSort, setSelectedSort] = useState("name");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
   const [createError, setCreateError] = useState<string>("");
+  const [deploymentStatus, setDeploymentStatus] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleWasmUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      if (!isAuthenticated) {
+        setCreateError("Please sign in first to upload WASM files.");
+        return;
+      }
+
+      setDeploymentStatus("Uploading WASM...");
+      setUploadProgress(0);
+
+      console.log(
+        "[DEBUG] Starting WASM upload for file:",
+        file.name,
+        "size:",
+        file.size,
+      );
+      const result = await wasmDeploymentService.deployRawWasm(
+        file,
+        (progress) => {
+          console.log("[DEBUG] Upload progress:", progress);
+          setUploadProgress(progress.percentage);
+          setDeploymentStatus(
+            `Uploading chunk ${progress.currentChunk}/${progress.totalChunks} (${Math.round(progress.percentage)}%)`,
+          );
+          if (progress.currentChunk === progress.totalChunks) {
+            setDeploymentStatus("All chunks uploaded! Deploying WASM...");
+            console.log("[DEBUG] All chunks uploaded, starting deployment");
+          }
+        },
+      );
+
+      console.log("[DEBUG] Deployment result:", result);
+      if (result.success) {
+        console.log(
+          "[DEBUG] Deployment successful with canister ID:",
+          result.canisterId,
+        );
+        setDeploymentStatus(
+          `Successfully deployed! Canister ID: ${result.canisterId}`,
+        );
+      } else {
+        console.error("[DEBUG] Deployment failed:", result.error);
+        setDeploymentStatus(`Deployment failed: ${result.error}`);
+      }
+    } catch (error) {
+      setDeploymentStatus(
+        `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setUploadProgress(null); // Clear progress bar after completion or error
+    }
+  };
 
   const handleCreateAgent = async (
     metadata: {
@@ -138,15 +202,42 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
         <div className="rounded-lg bg-gray-700 p-6">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-2xl font-bold">Agent Marketplace</h3>
-            <button
-              onClick={() => {
-                console.log("Create Agent button clicked");
-                setShowCreateForm(true);
-              }}
-              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              Create New Agent
-            </button>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => {
+                  console.log("Create Agent button clicked");
+                  setShowCreateForm(true);
+                }}
+                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                Create New Agent
+              </button>
+
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".wasm"
+                  onChange={handleWasmUpload}
+                  ref={fileInputRef}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setCreateError(
+                        "Please sign in first to upload WASM files.",
+                      );
+                      return;
+                    }
+                    fileInputRef.current?.click();
+                  }}
+                  className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!isAuthenticated}
+                >
+                  {isAuthenticated ? "Upload WASM" : "Sign in to Upload WASM"}
+                </button>
+              </div>
+            </div>
           </div>
 
           {createError && (
@@ -154,6 +245,33 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
               <p className="text-red-400">
                 <strong>Error:</strong> {createError}
               </p>
+            </div>
+          )}
+
+          {(deploymentStatus || uploadProgress !== null) && (
+            <div
+              className={`bg-opacity-20 mb-4 rounded border p-4 ${
+                deploymentStatus.includes("Successfully")
+                  ? "border-green-600 bg-green-900 text-green-400"
+                  : "border-yellow-600 bg-yellow-900 text-yellow-400"
+              }`}
+            >
+              <p>
+                <strong>Status:</strong> {deploymentStatus}
+              </p>
+              {uploadProgress !== null && uploadProgress < 100 && (
+                <div className="mt-2">
+                  <div className="h-2.5 w-full rounded-full bg-gray-700 dark:bg-gray-700">
+                    <div
+                      className="h-2.5 rounded-full bg-blue-500 transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-sm text-gray-400">
+                    {Math.round(uploadProgress)}% uploaded
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

@@ -1,6 +1,5 @@
 import LLM "mo:llm";
 import AgentInterface "../../shared/AgentInterface";
-import AgentDiscoveryService "../../services/AgentDiscoveryService";
 import AgentRegistryInterface "../../shared/AgentRegistryInterface";
 import Debug "mo:base/Debug";
 import Text "mo:base/Text";
@@ -8,32 +7,27 @@ import Error "mo:base/Error";
 import Array "mo:base/Array";
 import Json "mo:json";
 import Result "mo:base/Result";
-// import List "mo:base/List"; // not used currently
 import Principal "mo:base/Principal";
 import Nat "mo:base/Nat";
+import Nat64 "mo:base/Nat64";
+import Blob "mo:base/Blob";
 
 persistent actor PlannerAgent {
 
   // --- Ownership & Pricing (for this agent itself) ---
   private var owner : Principal = Principal.fromActor(PlannerAgent);
-  // Not directly used for charging downstream agents, but exposed for consistency
-  private var price : Nat = 100_000_000; // 1 MOMUS default
 
   public query func get_owner() : async Principal { owner };
-  public query func get_price() : async Nat { price };
+  public query func get_price() : async Nat { 0 };
   public shared (msg) func set_owner(newOwner : Principal) : async Bool {
     if (msg.caller != owner) { return false };
     owner := newOwner;
     true;
   };
-  public shared (msg) func set_price(newPrice : Nat) : async Bool {
-    if (msg.caller != owner) { return false };
-    price := newPrice;
-    true;
-  };
 
-  // --- Token & Fee Config ---
-  private var tokenCanisterId : Text = "by6od-j4aaa-aaaaa-qaadq-cai";
+  // --- ICP Ledger & Fee Config ---
+  // Constant ICP Ledger canister id (can be changed later if needed)
+  private let ledgerCanisterId : Text = "ryjl3-tyaaa-aaaaa-aaaba-cai";
   // Fixed 10% fee
   let FEE_NUM : Nat = 10; // percent
   let FEE_DEN : Nat = 100;
@@ -43,17 +37,151 @@ persistent actor PlannerAgent {
     (amount * FEE_NUM) / FEE_DEN;
   };
 
-  // Minimal token interface used by planner
-  private type Token = actor {
-    icrc2_transfer_from : (Principal, Principal, Nat) -> async Result.Result<Nat, Text>;
-    icrc1_transfer : (Principal, Nat) -> async Result.Result<Nat, Text>;
+  // Minimal ICP Ledger interface (ICRC-1/2) used by planner
+  private type Account = {
+    owner : Principal;
+    subaccount : ?Blob;
+  };
+
+  private type TransferArg = {
+    from_subaccount : ?Blob;
+    to : Account;
+    amount : Nat;
+    fee : ?Nat;
+    memo : ?Blob;
+    created_at_time : ?Nat64;
+  };
+
+  private type Icrc1TransferError = {
+    #BadFee : { expected_fee : Nat };
+    #BadBurn : { min_burn_amount : Nat };
+    #InsufficientFunds : { balance : Nat };
+    #TooOld : ();
+    #CreatedInFuture : { ledger_time : Nat64 };
+    #TemporarilyUnavailable : ();
+    #Duplicate : { duplicate_of : Nat };
+    #GenericError : { error_code : Nat; message : Text };
+  };
+
+  private type Icrc1TransferResult = {
+    #Ok : Nat;
+    #Err : Icrc1TransferError;
+  };
+
+  private type TransferFromArgs = {
+    spender_subaccount : ?Blob;
+    from : Account;
+    to : Account;
+    amount : Nat;
+    fee : ?Nat;
+    memo : ?Blob;
+    created_at_time : ?Nat64;
+  };
+
+  private type TransferFromError = {
+    #BadFee : { expected_fee : Nat };
+    #BadBurn : { min_burn_amount : Nat };
+    #InsufficientFunds : { balance : Nat };
+    #InsufficientAllowance : { allowance : Nat };
+    #TooOld : ();
+    #CreatedInFuture : { ledger_time : Nat64 };
+    #Duplicate : { duplicate_of : Nat };
+    #TemporarilyUnavailable : ();
+    #GenericError : { error_code : Nat; message : Text };
+  };
+
+  private type TransferFromResult = {
+    #Ok : Nat;
+    #Err : TransferFromError;
+  };
+
+  private type Ledger = actor {
+    icrc1_transfer : (TransferArg) -> async Icrc1TransferResult;
+    icrc2_transfer_from : (TransferFromArgs) -> async TransferFromResult;
+  };
+
+  // Process ICP payment: charge caller and split to owner and app wallet.
+  // Returns #ok on success (or partial success on payouts), #err with a user-visible message on failure to charge.
+  private func process_payment(fromUser : Principal, agentPrice : Nat, agentOwner : Principal) : async Result.Result<(), Text> {
+    if (ledgerCanisterId == "") {
+      return #err("ICP ledger not configured");
+    };
+
+    let ledger : Ledger = actor (ledgerCanisterId);
+    let toPlanner = Principal.fromActor(PlannerAgent);
+    let adminFee = compute_fee(agentPrice);
+    let toOwnerAmt : Nat = agentPrice - adminFee;
+
+    // Charge caller -> planner
+    let tfArgs : TransferFromArgs = {
+      spender_subaccount = null;
+      from = { owner = fromUser; subaccount = null };
+      to = { owner = toPlanner; subaccount = null };
+      amount = agentPrice;
+      fee = null;
+      memo = null;
+      created_at_time = null;
+    };
+
+    switch (await ledger.icrc2_transfer_from(tfArgs)) {
+      case (#Err(err)) {
+        Debug.print("ICRC2 transfer_from failed: " # debug_show (err));
+        switch (err) {
+          case (#InsufficientAllowance(_)) {
+            return #err("ICP allowance insufficient");
+          };
+          case (#InsufficientFunds(_)) {
+            return #err("ICP balance insufficient");
+          };
+          case _ { return #err("error: payment failed") };
+        };
+      };
+      case (#Ok(_)) {
+        Debug.print("Transferred " # Nat.toText(agentPrice) # " to planner");
+
+        // Payout owner (best effort)
+        let payOwner : TransferArg = {
+          from_subaccount = null;
+          to = { owner = agentOwner; subaccount = null };
+          amount = toOwnerAmt;
+          fee = null;
+          memo = null;
+          created_at_time = null;
+        };
+        switch (await ledger.icrc1_transfer(payOwner)) {
+          case (#Ok(_)) {
+            Debug.print("Transferred " # Nat.toText(toOwnerAmt) # " to agent owner");
+          };
+          case (#Err(e)) {
+            Debug.print("ICRC1 transfer to owner failed: " # debug_show (e));
+          };
+        };
+
+        // Payout app wallet (best effort)
+        let payFee : TransferArg = {
+          from_subaccount = null;
+          to = { owner = APP_WALLET; subaccount = null };
+          amount = adminFee;
+          fee = null;
+          memo = null;
+          created_at_time = null;
+        };
+        switch (await ledger.icrc1_transfer(payFee)) {
+          case (#Ok(_)) {
+            Debug.print("Transferred " # Nat.toText(adminFee) # " to app wallet");
+          };
+          case (#Err(e)) {
+            Debug.print("ICRC1 transfer of app fee failed: " # debug_show (e));
+          };
+        };
+
+        return #ok(());
+      };
+    };
   };
 
   // Direct access to registry for canister resolution
-  private let registry : AgentRegistryInterface.AgentRegistryInterface = actor ("be2us-64aaa-aaaaa-qaabq-cai");
-
-  // Use AgentDiscoveryService to interact with the registry
-  private transient let agentDiscovery = AgentDiscoveryService.AgentDiscoveryService("be2us-64aaa-aaaaa-qaabq-cai");
+  private let registry : AgentRegistryInterface.AgentRegistryInterface = actor ("umunu-kh777-77774-qaaca-cai");
 
   // Custom types for JSON parsing
   private type AgentInfo = {
@@ -110,47 +238,14 @@ persistent actor PlannerAgent {
             switch (canisterIdOpt) {
               case (?cid) {
                 let agentActor : AgentInterface.AgentInterface = actor (cid);
-                // Fetch per-agent price & owner
                 let agentPrice = await agentActor.get_price();
                 let agentOwner = await agentActor.get_owner();
 
-                // Ensure token canister configured
-                if (tokenCanisterId == "") {
-                  return "MOMUS token canister not configured";
-                };
-                let token : Token = actor (tokenCanisterId);
-
-                // Charge caller: transfer total price to planner, then split to owner/app
-                let fromUser = msg.caller;
-                let toPlanner = Principal.fromActor(PlannerAgent);
-                let adminFee = compute_fee(agentPrice);
-                let toOwnerAmt : Nat = agentPrice - adminFee;
-
-                switch (await token.icrc2_transfer_from(fromUser, toPlanner, agentPrice)) {
-                  case (#err(_e)) {
-                    return "error: " # _e;
-                  };
-                  case (#ok(_)) {
-                    Debug.print("Transferred " # Nat.toText(agentPrice) # " to planner");
-                    // Pay owner
-                    switch (await token.icrc1_transfer(agentOwner, toOwnerAmt)) {
-                      case (#ok(_)) {
-                        Debug.print("Transferred " # Nat.toText(toOwnerAmt) # " to agent owner");
-                      };
-                      case (#err(e)) {
-                        Debug.print("Failed to transfer to agent owner: " # e);
-                      };
-                    };
-                    // Pay app fee
-                    switch (await token.icrc1_transfer(APP_WALLET, adminFee)) {
-                      case (#ok(_)) {
-                        Debug.print("Transferred " # Nat.toText(adminFee) # " to app wallet");
-                      };
-                      case (#err(e)) {
-                        Debug.print("Failed to transfer app fee: " # e);
-                      };
-                    };
-                  };
+                // Charge caller and handle payouts
+                let paymentRes = await process_payment(msg.caller, agentPrice, agentOwner);
+                switch (paymentRes) {
+                  case (#err(msg)) { return msg };
+                  case (#ok(())) {};
                 };
               };
               case null {
@@ -158,7 +253,7 @@ persistent actor PlannerAgent {
               };
             };
 
-            let result = await agentDiscovery.executeAgentTask(agentInfo.name, agentInfo.refined_request);
+            let result = await registry.executeAgentTask(agentInfo.name, agentInfo.refined_request);
             switch (result) {
               case (#ok(response)) {
                 responses := Array.append(responses, [{ refined_request = agentInfo.refined_request; response = response }]);
