@@ -23,12 +23,15 @@ import { WeatherAgentNode } from "../components/nodes/WeatherAgentNode";
 import { ClientAgentNode } from "../components/nodes/ClientAgentNode";
 import { DataAgentNode } from "../components/nodes/DataAgentNode";
 import { AirQualityAgentNode } from "../components/nodes/AirQualityAgentNode";
-import { getPurchasedAgents } from "../services/agentMarketplace";
+import { GenericAgentNode } from "../components/nodes/GenericAgentNode";
 import { CanvasService } from "../services/canvasService";
 import { AgentExecutionService } from "../services/agentExecutionService";
 import { convertToCanvasState, convertFromCanvasState } from "../types/canvas";
 import { Loader } from "../components/Loader";
 import { ErrorDisplay } from "../components/ErrorDisplay";
+import { TextArea, Button } from "../components";
+import { backendService } from "../services/backendService";
+import { fetchRegistryAgents } from "../services/agentRegistryService";
 
 interface AgentCanvasViewProps {
   onError: (error: string) => void;
@@ -41,6 +44,7 @@ const nodeTypes = {
   clientAgent: ClientAgentNode,
   dataAgent: DataAgentNode,
   airQualityAgent: AirQualityAgentNode,
+  genericAgent: GenericAgentNode,
 };
 
 // Initial empty state
@@ -53,6 +57,16 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState("clientAgent");
+  const [prompt, setPrompt] = useState("");
+  const [execLoading, setExecLoading] = useState(false);
+  const [execResult, setExecResult] = useState<{
+    type: "ok" | "err";
+    value: string;
+  } | null>(null);
+  const [availableAgents, setAvailableAgents] = useState<
+    { agent_name: string; canister_id: string }[]
+  >([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   // Execution testing removed
   const [canvasStatus, setCanvasStatus] = useState<{
     ready: boolean;
@@ -65,7 +79,15 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
   // Debounce timer for canvas readiness checks
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const purchasedAgents = getPurchasedAgents();
+  useEffect(() => {
+    const loadAgents = async () => {
+      setLoadingAgents(true);
+      const res = await fetchRegistryAgents();
+      if (res.success) setAvailableAgents(res.data ?? []);
+      setLoadingAgents(false);
+    };
+    loadAgents();
+  }, []);
 
   // Get auth context
   const authContext = useContext(AuthContext);
@@ -286,6 +308,15 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
     [setNodes],
   );
 
+  const mapAgentTypeToNodeType = (agentNameOrType: string): string => {
+    const t = agentNameOrType.toLowerCase();
+    if (t.includes("weather")) return "weatherAgent";
+    if (t.includes("air") && t.includes("quality")) return "airQualityAgent";
+    if (t.includes("client")) return "clientAgent";
+    if (t.includes("data") || t.includes("analytics")) return "dataAgent";
+    return "genericAgent";
+  };
+
   const onSaveCanvas = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -335,6 +366,21 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
     }
   }, [setNodes, setEdges, onError]);
 
+  const onExecutePrompt = useCallback(async () => {
+    if (!prompt.trim()) return;
+    setExecLoading(true);
+    setExecResult(null);
+    try {
+      const res = await backendService.executePrompt(prompt.trim());
+      setExecResult(res);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+    } finally {
+      setExecLoading(false);
+    }
+  }, [prompt]);
+
   // onTestExecution removed
 
   return (
@@ -361,6 +407,45 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
 
         {/* Canvas Controls */}
         <div className="mb-4 space-y-4">
+          {/* Prompt Widget */}
+          <div>
+            <h4 className="mb-2 text-sm font-medium text-gray-300">
+              Prompt Widget
+            </h4>
+            <div className="rounded border border-gray-600 bg-gray-800 p-3">
+              <TextArea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Type a prompt to execute via backend..."
+              />
+              <div className="mt-2 flex gap-2">
+                <Button onClick={onExecutePrompt} disabled={execLoading}>
+                  {execLoading ? "Running..." : "Execute Prompt"}
+                </Button>
+                <Button
+                  onClick={() => setExecResult(null)}
+                  disabled={execLoading}
+                  className="bg-gray-600 hover:bg-gray-500"
+                >
+                  Clear Result
+                </Button>
+              </div>
+              {execResult && (
+                <div
+                  className={`mt-3 rounded p-3 text-sm ${
+                    execResult.type === "ok"
+                      ? "border border-green-600 bg-green-900/20 text-green-300"
+                      : "border border-red-600 bg-red-900/20 text-red-300"
+                  }`}
+                >
+                  <div className="font-semibold">
+                    {execResult.type === "ok" ? "Success" : "Error"}
+                  </div>
+                  <div className="whitespace-pre-wrap">{execResult.value}</div>
+                </div>
+              )}
+            </div>
+          </div>
           {/* Default Agents */}
           <div>
             <h4 className="mb-2 text-sm font-medium text-gray-300">
@@ -393,31 +478,37 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
             </div>
           </div>
 
-          {/* Purchased Agents */}
-          {purchasedAgents.length > 0 && (
-            <div>
-              <h4 className="mb-2 text-sm font-medium text-gray-300">
-                Your Purchased Agents
-              </h4>
+          {/* Available Agents from Registry */}
+          <div>
+            <h4 className="mb-2 text-sm font-medium text-gray-300">
+              Available Agents
+            </h4>
+            {loadingAgents ? (
+              <div className="text-gray-400">Loading agents…</div>
+            ) : (
               <div className="flex flex-wrap gap-2">
-                {purchasedAgents.map((purchase) => (
+                {availableAgents.map((a) => (
                   <button
-                    key={purchase.agentId}
+                    key={a.canister_id}
                     onClick={() =>
                       onAddPurchasedAgent(
-                        purchase.agent.nodeType,
-                        purchase.agent.name,
+                        mapAgentTypeToNodeType(a.agent_name),
+                        a.agent_name,
                       )
                     }
                     disabled={isLoading}
+                    title={a.canister_id}
                     className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Add {purchase.agent.name}
+                    Add {a.agent_name}
                   </button>
                 ))}
+                {availableAgents.length === 0 && (
+                  <div className="text-gray-400">No agents available.</div>
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Canvas Management */}
           <div>

@@ -34,8 +34,6 @@ persistent actor Main {
     register_agent : (Text, Text) -> async RegistryReturnType;
   };
 
-  
-
   // Canvas state storage per user
   private var canvasStatesEntries : [(Principal, CanvasState)] = [];
   private transient var canvasStates = HashMap.fromIter<Principal, CanvasState>(canvasStatesEntries.vals(), canvasStatesEntries.size(), Principal.equal, Principal.hash);
