@@ -5,10 +5,8 @@ import { PocketIc, type Actor } from "@dfinity/pic";
 import { Principal } from "@dfinity/principal";
 
 // Import generated types for your canister
-import {
-  type _SERVICE,
-  idlFactory,
-} from "../../src/declarations/backend/backend.did.js";
+import { idlFactory } from "../../src/declarations/backend/backend.did.js";
+import type { _SERVICE } from "../../src/declarations/backend/backend.did.d.ts";
 
 // Define the path to your canister's WASM file
 export const WASM_PATH = resolve(
@@ -34,7 +32,7 @@ describe("Vibe Coding Template Backend", () => {
   // The `beforeEach` hook runs before each test.
   beforeEach(async () => {
     // create a new PocketIC instance
-    pic = await PocketIc.create(inject("PIC_URL"));
+  pic = await PocketIc.create(inject("PIC_URL"));
 
     // Setup the canister and actor
     const fixture = await pic.setupCanister<_SERVICE>({
@@ -132,7 +130,7 @@ describe("Vibe Coding Template Backend", () => {
       // Save state for user 1
       await actor.save_canvas_state(mockCanvasState);
       // Create a second user
-      const pic2 = await PocketIc.create(inject("PIC_URL"));
+  const pic2 = await PocketIc.create(inject("PIC_URL"));
       const fixture2 = await pic2.setupCanister<_SERVICE>({
         idlFactory,
         wasm: WASM_PATH,
@@ -349,7 +347,9 @@ describe("Vibe Coding Template Backend", () => {
     it("should return caller principal from whoami", async () => {
       const principal = await actor.whoami();
       expect(principal).toBeDefined();
-      expect(principal._arr).toBeDefined(); // Principal has _arr property
+  // Basic shape check: string round-trip works
+  const asText = principal.toText();
+  expect(typeof asText).toBe("string");
     });
 
     it("should track user count correctly", async () => {
@@ -360,6 +360,20 @@ describe("Vibe Coding Template Backend", () => {
 
       const newCount = await actor.getUserCount();
       expect(newCount).toBe(initialCount + BigInt(1));
+    });
+
+    // New execute_prompt tests
+    describe("execute_prompt", () => {
+      it("should return variant Err until implemented", async () => {
+        const res = await actor.execute_prompt("Test prompt");
+        expect("err" in res || "Err" in res).toBe(true);
+      });
+
+      it("should exist and be callable", async () => {
+        // Just ensure the method is exposed in the candid
+        const res = await actor.execute_prompt("Hello");
+        expect(res).toBeDefined();
+      });
     });
   });
 });

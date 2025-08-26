@@ -14,15 +14,27 @@ import Principal "mo:base/Principal";
 import Debug "mo:base/Debug";
 import Blob "mo:base/Blob";
 import Array "mo:base/Array";
-import Cycles "mo:base/ExperimentalCycles";
 import Json "mo:json";
 import Error "mo:base/Error";
+import Char "mo:base/Char";
+import Cycles "mo:base/ExperimentalCycles";
 
 persistent actor Main {
   // Counter variable to keep track of count
   private var counter : Nat64 = 0;
 
   let APP_WALLET : Principal = Principal.fromText("7qho5-xxgtn-z3lqg-ytfyb-avpre-4no2h-2ffxu-ihucl-3ude6-zaubo-mqe");
+
+  type RegistryReturnType = { #Ok : ?Text; #Err : ?Text };
+  // Common ReturnType used by agent canisters (client/weather/airquality)
+  public type ReturnType = { #Ok : ?Text; #Err : ?Text };
+  type AgentRegistry = actor {
+    // Registry API
+    get_list_agents : query () -> async RegistryReturnType;
+    register_agent : (Text, Text) -> async RegistryReturnType;
+  };
+
+  let registry : AgentRegistry = actor ("bd3sg-teaaa-aaaaa-qaaba-cai");
 
   // Canvas state storage per user
   private var canvasStatesEntries : [(Principal, CanvasState)] = [];
@@ -303,6 +315,59 @@ persistent actor Main {
   };
 
   // API
+  // Proxy to Agent Registry: return all registered agents as-is
+  public shared func get_list_agents() : async RegistryReturnType {
+    await registry.get_list_agents();
+  };
+
+  // Execute a prompt by delegating to the Agentic Client Agent canister.
+  // Builds a JSON payload containing the prompt, connected agent names (from the caller's canvas state),
+  // and the caller principal. Returns the raw ReturnType from the client agent.
+  public shared (msg) func execute_prompt(promptText : Text) : async ReturnType {
+    let caller = msg.caller;
+
+    // Gather connected agents from the caller's saved canvas state
+    let connectedAgents : [Text] = switch (canvasStates.get(caller)) {
+      case (?state) {
+        // Derive agent names from nodeType, convert camelCase to kebab-case, exclude client-agent, and dedupe
+        let names = Array.tabulate<Text>(
+          state.nodes.size(),
+          func(i : Nat) : Text {
+            camelToKebab(state.nodes[i].nodeType);
+          },
+        );
+        let filtered = Array.filter<Text>(names, func(n : Text) : Bool { n != "client-agent" });
+        dedupePreserveOrder(filtered);
+      };
+      case null { [] };
+    };
+
+    let promptEsc = jsonEscape(promptText);
+    // Build JSON array string for connected agents
+    var agentsJson : Text = "[";
+    var first = true;
+    for (a in connectedAgents.vals()) {
+      if (first) { first := false } else { agentsJson #= "," };
+      agentsJson #= "\"" # jsonEscape(a) # "\"";
+    };
+    agentsJson #= "]";
+    let callerTxt = Principal.toText(caller);
+
+    // Build request JSON matching expected schema
+    let requestJson = "[" #
+    "{\"name\":\"prompt\",\"value\":\"" # promptEsc # "\"}," #
+    "{\"name\":\"connected_agent_list\",\"value\":" # agentsJson # "}," #
+    "{\"name\":\"user\",\"value\":\"" # jsonEscape(callerTxt) # "\"}" #
+    "]";
+
+    // Client Agent interface and call
+    type ClientAgent = actor {
+      execute_task : (Text) -> async ReturnType;
+    };
+    let client : ClientAgent = actor ("bw4dl-smaaa-aaaaa-qaacq-cai");
+    await client.execute_task(requestJson);
+  };
+
   public shared (msg) func start_chunk_upload(total_size : Nat, chunk_count : Nat) : async Text {
     let sessionId = Principal.toText(msg.caller) # "_" # Int.toText(Time.now());
     let session : UploadSession = {
@@ -439,10 +504,6 @@ persistent actor Main {
           type DeployedAgent = actor {
             get_metadata : query () -> async AgentReturnType;
           };
-          type RegistryReturnType = { #Ok : ?Text; #Err : ?Text };
-          type AgentRegistry = actor {
-            register_agent : (Text, Text) -> async RegistryReturnType;
-          };
 
           let deployed : DeployedAgent = actor (Principal.toText(new_id));
           // Query newly installed canister for its metadata
@@ -453,7 +514,6 @@ persistent actor Main {
               switch (extractAgentName(jsonTxt)) {
                 case (?agentName) {
                   Debug.print("[deploy] Extracted agent name: " # agentName);
-                  let registry : AgentRegistry = actor ("bd3sg-teaaa-aaaaa-qaaba-cai");
                   try {
                     let regRes = await registry.register_agent(agentName, Principal.toText(new_id));
                     switch (regRes) {
@@ -501,5 +561,51 @@ persistent actor Main {
       };
       case (#err(_)) null;
     };
+  };
+
+  // --- Local helpers ---
+  // Convert camelCase or PascalCase to kebab-case (e.g., weatherAgent -> weather-agent)
+  func camelToKebab(t : Text) : Text {
+    var out : Text = "";
+    for (c in Text.toIter(t)) {
+      let n = Char.toNat32(c);
+      if (n >= 65 and n <= 90) {
+        // 'A'..'Z'
+        if (out != "") { out #= "-" };
+        out #= Char.toText(Char.fromNat32(n + 32)); // to lower
+      } else {
+        out #= Char.toText(c);
+      };
+    };
+    out;
+  };
+
+  // Minimal JSON string escape for \ and " and control newlines
+  func jsonEscape(t : Text) : Text {
+    var out : Text = "";
+    for (c in Text.toIter(t)) {
+      switch (Char.toNat32(c)) {
+        case 34 { out #= "\\\"" }; // '"'
+        case 92 { out #= "\\\\" }; // '\\'
+        case 10 { out #= "\\n" }; // newline
+        case 13 { out #= "\\r" }; // carriage return
+        case 9 { out #= "\\t" }; // tab
+        case _ { out #= Char.toText(c) };
+      };
+    };
+    out;
+  };
+
+  // Dedupe a list of Text while preserving order
+  func dedupePreserveOrder(arr : [Text]) : [Text] {
+    let seen = HashMap.HashMap<Text, Bool>(arr.size(), Text.equal, Text.hash);
+    var acc : [Text] = [];
+    for (v in arr.vals()) {
+      switch (seen.get(v)) {
+        case null { seen.put(v, true); acc := Array.append<Text>(acc, [v]) };
+        case (?_) {};
+      };
+    };
+    acc;
   };
 };

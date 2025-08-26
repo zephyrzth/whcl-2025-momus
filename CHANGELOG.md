@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Backend: add get_list_agents() API that proxies Agent Registry's get_list_agents and returns the raw RegistryReturnType.
+
+- Backend: add execute_prompt(prompt) that reads connected agents from user canvas, builds JSON request with prompt, connected_agent_list, and user principal, and delegates to agentic-client-agent execute_task returning raw ReturnType.
+
 - Add header user menu showing Principal ID, wallet Account ID, and ICP balance (local ledger), with copy actions and live fetch on open.
 
 - Auto-register newly deployed agents: after deploy_from_chunks, query agent get_metadata to obtain name and register with Agent Registry canister.
