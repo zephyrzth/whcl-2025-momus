@@ -35,28 +35,44 @@ def execute_task(args: str) -> Async[ReturnType]:
             return { "Err": "Missing required parameters" }
 
         parameters = __transform_params(params)
+
         agent_call_list_stream = yield __parse_parameter(parameters)
-        agent_call_list_raw = match( agent_call_list_stream, { "Ok": lambda ok: ok, "Err": lambda err: { "Err": err } })
+        agent_call_list_raw = match( agent_call_list_stream, { "Ok": lambda ok: { "Ok": ok }, "Err": lambda err: { "Err": err } })
 
         if agent_call_list_raw.get("Err") is not None:
             ic.print(f"[ClientAgent] Error parsing agent call list: {agent_call_list_raw.get('Err')}")
             return { "Err": "Failed to parse agent call list" }
 
-        ic.print(f"[ClientAgent] Agent call list: {agent_call_list_raw.get('Ok')}")
-
         agent_call_list = json.loads(agent_call_list_raw.get("Ok"))
 
         ic.print(agent_call_list)
 
-        # # Process response
-        # if response and "message" in response:
-        #     message = response["message"]
-        #     return json.dumps({
-        #         "content": message.get("content"),
-        #         "tool_calls": message.get("tool_calls", [])
-        #     })
+        resp = ""
 
-        return { "Ok": json.dumps(agent_call_list) }
+        for agent in agent_call_list:
+            curr_stream_resp = yield __agent_call(agent['function']["name"], agent['function']["arguments"]) 
+            curr_stream_raw = match( curr_stream_resp, { "Ok": lambda ok: { "Ok": ok }, "Err": lambda err: { "Err": err } })
+            
+            if curr_stream_raw.get("Err") is not None:
+                ic.print(f"[ClientAgent] Error calling agent '{agent['function']['name']}': {curr_stream_raw.get('Err')}")
+                return { "Err": f"Failed to call agent '{agent['function']['name']}'" }
+
+            curr_stream = curr_stream_raw.get("Ok")
+            
+            # for testing
+            curr_stream = curr_stream.split(".")[0]
+
+            curr_resp = f"`{agent['function']['name']}`: {curr_stream}\n"
+            resp += curr_resp
+
+        resp = yield __result_refinement(resp)
+
+        if resp.get("Err") is not None:
+            return resp
+        
+        final_result = resp.get("Ok").get('message', {}).get('content', '')
+
+        return { "Ok": final_result }
 
     except Exception as e:
         return { "Err": json.dumps({"error": str(e)}) }
@@ -70,7 +86,7 @@ def __get_agent_metadata(agent_name: str) -> Async[dict]:
 
     agent_registry = AgentRegistryInterface(Principal.from_str(AGENT_REGISTRY_CANISTER_ID))
     resp_stream = yield agent_registry.get_agent_by_name(agent_name)
-    resp = match( resp_stream, { "Ok": lambda ok: { "Ok": ok }, "Err": lambda err: { "Err": err } })
+    resp = match( resp_stream, { "Ok": lambda ok: ok, "Err": lambda err: { "Err": err } })
 
     if resp.get("Err") is not None:
         ic.print(f"[ClientAgent] Error getting agent metadata: {resp.get('Err')}")
@@ -82,8 +98,6 @@ def __get_agent_metadata(agent_name: str) -> Async[dict]:
     resp_stream = yield agent.get_metadata()
 
     resp = match( resp_stream, { "Ok": lambda ok: ok, "Err": lambda err: { "Err": err } })
-
-    ic.print(f"[ClientAgent] Fetched metadata for agent '{agent_name}': {resp}")
 
     if resp.get("Err") is not None:
         ic.print(f"[ClientAgent] Error getting agent metadata: {resp.get('Err')}")
@@ -142,4 +156,63 @@ def __parse_parameter(parameters: dict) -> Async[dict]:
     list_agent_call = response.get('message', {}).get('tool_calls', [])
 
     return { "Ok": json.dumps(list_agent_call) }
+
+def __agent_call( agent_name: str, parameters: List[dict] ) -> Async[dict]:
+
+    agent_registry = AgentRegistryInterface(Principal.from_str(AGENT_REGISTRY_CANISTER_ID))
+    resp_stream = yield agent_registry.get_agent_by_name(agent_name)
+    resp = match( resp_stream, { "Ok": lambda ok: ok, "Err": lambda err: { "Err": err } })
+
+    if resp.get("Err") is not None:
+        ic.print(f"[ClientAgent] Error getting agent metadata: {resp.get('Err')}")
+        return None
+    
+    agent_mapper = json.loads(resp.get("Ok"))
+
+    agent = AgentInterface(Principal.from_str(agent_mapper.get("canister_id")))
+    resp_stream = yield agent.execute_task(json.dumps(parameters))
+
+    resp = match( resp_stream, { "Ok": lambda ok: ok, "Err": lambda err: { "Err": err } })
+
+    if resp.get("Err") is not None:
+        ic.print(f"[ClientAgent] Error getting agent metadata: {resp.get('Err')}")
+        return None
+
+    agent_response = resp.get("Ok")
+
+    ic.print(f"[ClientAgent] Agent '{agent_name}' response: {agent_response}")
+
+    return { "Ok": agent_response }
+
+
+def __result_refinement(results: str) -> Async[ReturnType]:
+    
+    ic.print(f"[ClientAgent] Result Refinement - {results}")
+
+    llm_service = LLMServiceV1(Principal.from_str(LLM_CANISTER_ID))
+
+    # Create messages
+    messages = [
+        create_system_message("You are a helpful agent. Combine the response into one paragraph."),
+        create_user_message(results)
+    ]
+
+    request = {
+        "model": "llama3.1:8b",
+        "tools": None,
+        "messages": messages
+    }
+    
+    # Call service
+    response_stream = yield llm_service.v1_chat(request)
+
+    response = match(
+        response_stream,
+        {
+            "Ok": lambda ok: { "Ok": ok }, 
+            "Err": lambda err: { "Err": err }
+        }
+    )
+
+    return response
 # ===================================== HELPER FUNC ====================================

@@ -48,12 +48,12 @@ def tool__get_weather(city_name: str) -> Async[ReturnType]:
         http_result,
         {
             # for testing using smaller data
-            # "Ok": lambda ok: { 
-            #     "Ok":  json.dumps(
-            #         json.loads(ok["body"].decode("utf-8") )['weather']
-            #     )
-            # },
-            "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
+            "Ok": lambda ok: { 
+                "Ok":  json.dumps(
+                    json.loads(ok["body"].decode("utf-8") )['weather'][0]
+                )
+            },
+            # "Ok": lambda ok: { "Ok": ok["body"].decode("utf-8") },
             "Err": lambda err: { "Err": str(err) }
         },
     )

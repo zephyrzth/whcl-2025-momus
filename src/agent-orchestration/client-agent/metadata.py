@@ -2,7 +2,7 @@ from typing import List
 from llm import create_function_tool
 
 METADATA = create_function_tool(
-    name="ClientAgent",
+    name="client-agent",
     description="Agentic AI for planning and routing to other agent",
     params={
         "type": "object",
