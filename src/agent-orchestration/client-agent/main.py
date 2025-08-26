@@ -4,12 +4,15 @@ from kybra import (
 )
 
 from llm import *
-from typing import List, Optional
+from typing import List
 import json
 
 from model import *
 from metadata import *
 from constants import *
+
+# Payment / ledger related imports moved from function scope
+from model import Ledger, TransferFromArgs, Account, TransferArg
 # -====================================== IMPORT =======================================
 
 # ===================================== ROUTER MAIN ====================================
@@ -20,6 +23,8 @@ def get_owner() -> Principal:
 
 @query
 def get_price() -> int:
+    # Price (in e8s) charged by this client agent per downstream agent call invocation.
+    # Adjust as needed.
     return 1_000_000
 
 @query
@@ -53,25 +58,31 @@ def execute_task(args: str) -> Async[ReturnType]:
 
         agent_call_list = json.loads(agent_call_list_raw.get("Ok"))
 
-        ic.print(agent_call_list)
-
         resp = ""
 
+        caller = ic.caller()
+
         for agent in agent_call_list:
-            curr_stream_resp = yield __agent_call(agent['function']["name"], agent['function']["arguments"]) 
-            curr_stream_raw = match( curr_stream_resp, { "Ok": lambda ok: { "Ok": ok }, "Err": lambda err: { "Err": err } })
-            
+            agent_name = agent['function']["name"]
+            agent_args = agent['function']["arguments"]
+
+            # Ensure payment (pricing lookup + charging) before invocation
+            payment_variant = yield __ensure_payment(agent_name, caller)
+
+            if payment_variant.get("Err") is not None:
+                return payment_variant
+
+            # Now invoke downstream agent
+            curr_stream_resp = yield __agent_call(agent_name, agent_args)
+            curr_stream_raw = match(curr_stream_resp, { "Ok": lambda ok: { "Ok": ok }, "Err": lambda err: { "Err": err } })
+
             if curr_stream_raw.get("Err") is not None:
-                ic.print(f"[ClientAgent] Error calling agent '{agent['function']['name']}': {curr_stream_raw.get('Err')}")
-                return { "Err": f"Failed to call agent '{agent['function']['name']}'" }
-
-            curr_stream = curr_stream_raw.get("Ok")
+                ic.print(f"[ClientAgent] Error calling agent '{agent_name}': {curr_stream_raw.get('Err')}")
+                return { "Err": f"Failed to call agent '{agent_name}'" }
             
-            # for testing
+            curr_stream = curr_stream_raw.get("Ok")
             curr_stream = curr_stream.split(".")[0]
-
-            curr_resp = f"`{agent['function']['name']}`: {curr_stream}\n"
-            resp += curr_resp
+            resp += f"`{agent_name}`: {curr_stream}\n"
 
         resp = yield __result_refinement(resp)
 
@@ -118,6 +129,128 @@ def __get_agent_metadata(agent_name: str) -> Async[dict]:
             agent_metadata['function']['parameters']['properties'].pop(i)
 
     return agent_metadata
+
+# -------------------------------------------------------------------------------------
+# Pricing & Payment Logic (replicating Motoko planner_agent payment flow)
+# -------------------------------------------------------------------------------------
+
+# Derived helpers
+def _compute_fee(amount: int) -> int:
+    return (amount * FEE_NUM) // FEE_DEN
+
+def __get_agent_pricing(agent_name: str) -> Async[dict]:
+
+    agent_registry = AgentRegistryInterface(Principal.from_str(AGENT_REGISTRY_CANISTER_ID))
+
+    resp_stream = yield agent_registry.get_agent_by_name(agent_name)
+    resp = match(resp_stream, { "Ok": lambda ok: ok, "Err": lambda err: { "Err": err } })
+
+    if resp.get("Err") is not None:
+        return { "Err": resp.get("Err") }
+    
+    agent_mapper = json.loads(resp)
+    canister_id = agent_mapper.get("canister_id")
+
+    if canister_id is None:
+        return { "Err": "Missing canister id" }
+    
+    pricing_iface = AgentInterface(Principal.from_str(canister_id))
+    price_stream = yield pricing_iface.get_price()
+    owner_stream = yield pricing_iface.get_owner()
+    price = price_stream  # price is raw int query response
+    owner = owner_stream
+    
+    return { "Ok": { "price": price, "owner": owner } }
+
+def __process_payment(from_user: Principal, agent_price: int, agent_owner: Principal) -> Async[ReturnType]:
+    
+    if LEDGER_CANISTER_ID == "":
+        return { "Err": "ICP ledger not configured" }
+
+    ledger = Ledger(Principal.from_str(LEDGER_CANISTER_ID))
+    APP_WALLET = Principal.from_str(APP_WALLET_TEXT)
+
+    to_client_agent = ic.id()
+    admin_fee = _compute_fee(agent_price)
+    to_owner_amt = agent_price - admin_fee
+
+    tf_args = TransferFromArgs(
+        spender_subaccount=None,
+        from_=Account(owner=from_user, subaccount=None),
+        to=Account(owner=to_client_agent, subaccount=None),
+        amount=agent_price,
+        fee=None,
+        memo=None,
+        created_at_time=None
+    )
+
+    charge_stream = yield ledger.icrc2_transfer_from(tf_args)
+    # We don't pattern match fully on variants (kybra returns dict-like) so inspect keys
+    if getattr(charge_stream, 'Err', None) is not None:
+        # Derive user friendly error
+        err_variant = charge_stream.Err
+        # Simplified checks
+        if getattr(err_variant, 'InsufficientAllowance', None) is not None:
+            return { "Err": "ICP allowance insufficient" }
+        if getattr(err_variant, 'InsufficientFunds', None) is not None:
+            return { "Err": "ICP balance insufficient" }
+        return { "Err": "error: payment failed" }
+
+    # Payout owner (best effort)
+    pay_owner = TransferArg(
+        from_subaccount=None,
+        to=Account(owner=agent_owner, subaccount=None),
+        amount=to_owner_amt,
+        fee=None,
+        memo=None,
+        created_at_time=None
+    )
+    owner_payout_res = yield ledger.icrc1_transfer(pay_owner)
+
+    if getattr(owner_payout_res, 'Err', None) is not None:
+        ic.print(f"[ClientAgent] Owner payout failed: {owner_payout_res.Err}")
+        return { "Err": "Owner payout failed" }
+    
+    ic.print(f"[ClientAgent] Owner payout success: {to_owner_amt}")
+
+    # Payout app wallet (best effort)
+    pay_fee = TransferArg(
+        from_subaccount=None,
+        to=Account(owner=APP_WALLET, subaccount=None),
+        amount=admin_fee,
+        fee=None,
+        memo=None,
+        created_at_time=None
+    )
+
+    fee_payout_res = yield ledger.icrc1_transfer(pay_fee)
+
+    if getattr(fee_payout_res, 'Err', None) is not None:
+        ic.print(f"[ClientAgent] App fee payout failed: {fee_payout_res.Err}")
+        return { "Err": "App fee payout failed" }
+    
+    ic.print(f"[ClientAgent] App fee payout success: {admin_fee}")
+
+    return { "Ok": None }
+
+def __ensure_payment(agent_name: str, caller: Principal) -> Async[ReturnType]:
+    """Lookup price/owner and charge caller. Does NOT invoke the agent."""
+    
+    pricing_resp = yield __get_agent_pricing(agent_name)
+
+    if pricing_resp.get("Err") is not None:
+        ic.print(f"[ClientAgent] Pricing fetch failed for '{agent_name}': {pricing_resp.get('Err')}")
+        return { "Err": f"Failed to retrieve pricing for '{agent_name}'" }
+    
+    agent_price = pricing_resp.get("Ok").get("price")
+    agent_owner = pricing_resp.get("Ok").get("owner")
+
+    payment_res = yield __process_payment(caller, agent_price, agent_owner)
+
+    if payment_res.get("Err") is not None:
+        return payment_res
+    
+    return { "Ok": "paid" }
 
 def __parse_parameter(parameters: dict) -> Async[dict]:
         
