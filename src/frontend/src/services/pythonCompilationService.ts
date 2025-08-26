@@ -19,7 +19,7 @@ export interface AgentInterface {
     description: string;
     version: string;
   }>;
-  execute_task(task: string): Promise<string>;
+  // execute_task removed from frontend validation path
 }
 
 class PythonCompilationService {
@@ -96,7 +96,7 @@ try:
     
     # Check for required agent interface functions
     has_get_metadata = False
-    has_execute_task = False
+  has_execute_task = False
     
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
@@ -108,8 +108,7 @@ try:
     validation_errors = []
     if not has_get_metadata:
         validation_errors.append("Missing required function: get_metadata()")
-    if not has_execute_task:
-        validation_errors.append("Missing required function: execute_task(task)")
+  # execute_task check removed from frontend validation
         
     print("VALIDATION_RESULT:", "valid" if len(validation_errors) == 0 else "invalid")
     for error in validation_errors:
@@ -139,7 +138,7 @@ try:
     tree = ast.parse(code)
     
     has_get_metadata = False
-    has_execute_task = False
+  has_execute_task = False
     
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
@@ -151,8 +150,7 @@ try:
     validation_errors = []
     if not has_get_metadata:
         validation_errors.append("Missing required function: get_metadata()")
-    if not has_execute_task:
-        validation_errors.append("Missing required function: execute_task(task)")
+  # execute_task check removed from frontend validation
         
     print("VALIDATION_RESULT:", "valid" if len(validation_errors) == 0 else "invalid")
     for error in validation_errors:
@@ -251,8 +249,8 @@ agent = AgentWrapper()
       // Execute the Python code in Pyodide
       await this.pyodide.runPython(wrappedCode);
 
-      // Test the agent functions
-      const metadata = await this.pyodide.runPython(`
+  // Test the agent metadata function only
+  const metadata = await this.pyodide.runPython(`
 import json
 
 output = ""
@@ -266,16 +264,8 @@ except Exception as e:
 output
       `);
 
-      const testTask = await this.pyodide.runPython(`
-output = ""
-try:
-    result = agent.execute_task("test")
-    output = str(result)
-except Exception as e:
-    output = f"Error: {str(e)}"
-
-output
-      `);
+  // Removed execute_task test
+  const testTask = "execute_task test removed";
 
       console.log("[DEBUG] metadata: ", metadata);
       // For now, we'll create a mock WASM representation since actual WASM compilation
@@ -332,44 +322,7 @@ json.dumps({
     }
   }
 
-  async testAgent(
-    wasmData: Uint8Array,
-    testTask: string = "test",
-  ): Promise<{ success: boolean; result?: string; error?: string }> {
-    try {
-      const agentData = JSON.parse(new TextDecoder().decode(wasmData));
-
-      await this.initialize();
-      if (!this.pyodide) {
-        return { success: false, error: "Pyodide not initialized" };
-      }
-
-      // Execute the agent code
-      await this.pyodide.runPython(agentData.pythonCode);
-
-      // Test the agent
-      const result = await this.pyodide.runPython(`
-output = ""
-try:
-    result = agent.execute_task("${testTask}")
-    output = str(result)
-except Exception as e:
-    output = f"Error: {str(e)}"
-
-output
-      `);
-
-      return {
-        success: !result.startsWith("Error:"),
-        result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      };
-    }
-  }
+  // testAgent removed as execute path is no longer validated from frontend
 }
 
 export const pythonCompilationService = new PythonCompilationService();

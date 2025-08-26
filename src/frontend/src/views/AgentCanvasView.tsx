@@ -25,10 +25,7 @@ import { DataAgentNode } from "../components/nodes/DataAgentNode";
 import { AirQualityAgentNode } from "../components/nodes/AirQualityAgentNode";
 import { getPurchasedAgents } from "../services/agentMarketplace";
 import { CanvasService } from "../services/canvasService";
-import {
-  AgentExecutionService,
-  ExecutionResult,
-} from "../services/agentExecutionService";
+import { AgentExecutionService } from "../services/agentExecutionService";
 import { convertToCanvasState, convertFromCanvasState } from "../types/canvas";
 import { Loader } from "../components/Loader";
 import { ErrorDisplay } from "../components/ErrorDisplay";
@@ -56,11 +53,7 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState("clientAgent");
-  const [testPrompt, setTestPrompt] = useState(
-    "What is the current weather in Jakarta?",
-  );
-  const [executionResult, setExecutionResult] =
-    useState<ExecutionResult | null>(null);
+  // Execution testing removed
   const [canvasStatus, setCanvasStatus] = useState<{
     ready: boolean;
     issues: string[];
@@ -183,7 +176,6 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
 
   const clearError = useCallback(() => {
     setError(null);
-    setExecutionResult(null);
   }, []);
 
   const loadCanvasFromBackend = useCallback(async () => {
@@ -343,36 +335,7 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
     }
   }, [setNodes, setEdges, onError]);
 
-  const onTestExecution = useCallback(async () => {
-    if (!testPrompt.trim()) {
-      setError("Please enter a test prompt");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setExecutionResult(null);
-
-    try {
-      // Use the new test execution method that routes directly to planner agent
-      const result = await AgentExecutionService.executeTestPrompt(testPrompt);
-      setExecutionResult(result);
-
-      if (!result.success) {
-        setError(result.error || "Execution failed");
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      setError(errorMessage);
-      setExecutionResult({
-        success: false,
-        error: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [testPrompt]);
+  // onTestExecution removed
 
   return (
     <div className="space-y-4">
@@ -527,92 +490,9 @@ export function AgentCanvasView({ onError }: AgentCanvasViewProps) {
             </div>
           </div>
 
-          {/* Agent Execution Testing */}
-          <div>
-            <h4 className="mb-2 text-sm font-medium text-gray-300">
-              Test Agent Execution
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
-                  Test Prompt
-                </label>
-                <textarea
-                  value={testPrompt}
-                  onChange={(e) => setTestPrompt(e.target.value)}
-                  placeholder="Enter a prompt to test agent routing (e.g., 'What is the weather in Jakarta?')"
-                  className="w-full rounded border border-gray-600 bg-gray-800 px-3 py-2 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                  rows={2}
-                />
-              </div>
-              <button
-                onClick={onTestExecution}
-                disabled={isLoading}
-                className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoading ? "Executing..." : "Test Execution"}
-              </button>
-            </div>
-          </div>
+          {/* Agent execution testing removed */}
 
-          {/* Execution Result */}
-          {executionResult && (
-            <div>
-              <h4 className="mb-2 text-sm font-medium text-gray-300">
-                Execution Result
-              </h4>
-              <div
-                className={`rounded border p-3 ${
-                  executionResult.success
-                    ? "border-green-600 bg-green-900/20"
-                    : "border-red-600 bg-red-900/20"
-                }`}
-              >
-                {executionResult.success ? (
-                  <div>
-                    {executionResult.executionPath && (
-                      <div className="mb-2">
-                        <span className="text-sm font-medium text-green-400">
-                          Execution Path:
-                        </span>
-                        <span className="ml-2 text-sm text-gray-300">
-                          {executionResult.executionPath.join(" → ")}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-sm font-medium text-green-400">
-                        Response:
-                      </span>
-                      <p className="mt-1 text-sm text-gray-300">
-                        {executionResult.response}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <span className="text-sm font-medium text-red-400">
-                      Error:
-                    </span>
-                    <p className="mt-1 text-sm text-gray-300">
-                      {executionResult.error}
-                    </p>
-                    {executionResult.executionPath &&
-                      executionResult.executionPath.length > 0 && (
-                        <div className="mt-2">
-                          <span className="text-sm font-medium text-red-400">
-                            Partial Path:
-                          </span>
-                          <span className="ml-2 text-sm text-gray-300">
-                            {executionResult.executionPath.join(" → ")}
-                          </span>
-                        </div>
-                      )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Execution result UI removed */}
         </div>
 
         {/* React Flow Canvas */}

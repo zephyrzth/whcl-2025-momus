@@ -32,7 +32,7 @@ describe("Vibe Coding Template Backend", () => {
   // The `beforeEach` hook runs before each test.
   beforeEach(async () => {
     // create a new PocketIC instance
-  pic = await PocketIc.create(inject("PIC_URL"));
+    pic = await PocketIc.create(inject("PIC_URL"));
 
     // Setup the canister and actor
     const fixture = await pic.setupCanister<_SERVICE>({
@@ -130,7 +130,7 @@ describe("Vibe Coding Template Backend", () => {
       // Save state for user 1
       await actor.save_canvas_state(mockCanvasState);
       // Create a second user
-  const pic2 = await PocketIc.create(inject("PIC_URL"));
+      const pic2 = await PocketIc.create(inject("PIC_URL"));
       const fixture2 = await pic2.setupCanister<_SERVICE>({
         idlFactory,
         wasm: WASM_PATH,
@@ -347,9 +347,9 @@ describe("Vibe Coding Template Backend", () => {
     it("should return caller principal from whoami", async () => {
       const principal = await actor.whoami();
       expect(principal).toBeDefined();
-  // Basic shape check: string round-trip works
-  const asText = principal.toText();
-  expect(typeof asText).toBe("string");
+      // Basic shape check: string round-trip works
+      const asText = principal.toText();
+      expect(typeof asText).toBe("string");
     });
 
     it("should track user count correctly", async () => {

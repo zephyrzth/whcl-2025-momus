@@ -116,15 +116,9 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
 
       console.log("Python code compiled successfully");
 
-      // Test the compiled agent
+      // Skip execute_task testing in frontend
       if (compilationResult.wasmData) {
-        const testResult = await pythonCompilationService.testAgent(
-          compilationResult.wasmData,
-        );
-        if (!testResult.success) {
-          throw new Error(`Agent test failed: ${testResult.error}`);
-        }
-        console.log("Agent test passed:", testResult.result);
+        console.log("Skipping execute_task test in frontend; metadata compiled.");
       }
 
       // Here we would normally send the WASM data to the backend

@@ -1,7 +1,4 @@
-import {
-  AgentExecutionService,
-  ExecutionResult,
-} from "./agentExecutionService";
+import { AgentExecutionService } from "./agentExecutionService";
 
 /**
  * Service for demo pages to use canvas-based agent execution
@@ -11,8 +8,9 @@ export class DemoExecutionService {
    * Execute a prompt using the current canvas configuration
    * This is the main interface for demo pages
    */
-  static async executeUserPrompt(prompt: string): Promise<ExecutionResult> {
-    return await AgentExecutionService.executePrompt(prompt);
+  static async executeUserPrompt(_prompt: string): Promise<{ success: false; error: string }> {
+    // Execution removed from frontend
+    return { success: false, error: "Agent execution has been removed from the frontend." };
   }
 
   /**
