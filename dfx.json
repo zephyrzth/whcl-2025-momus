@@ -27,8 +27,7 @@
     "frontend": {
       "dependencies": ["backend"],
       "type": "assets",
-      "source": ["src/frontend/dist/"],
-      "id": "b77ix-eeaaa-aaaaa-qaada-cai"
+      "source": ["src/frontend/dist/"]
     },
     "agentic-backend": {
       "type": "custom",
@@ -36,8 +35,7 @@
       "candid": ".kybra/agentic-backend/agentic-backend.did",
       "wasm": ".kybra/agentic-backend/agentic-backend.wasm",
       "gzip": true,
-      "metadata": [{ "name": "candid:service" }],
-      "id": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+      "metadata": [{ "name": "candid:service" }]
     },
     "agentic-agent-registry": {
       "type": "custom",
@@ -45,8 +43,7 @@
       "candid": ".kybra/agent-orchestration/agent-registry/agent-registry.did",
       "wasm": ".kybra/agent-orchestration/agent-registry/agent-registry.wasm",
       "gzip": true,
-      "metadata": [{ "name": "candid:service" }],
-      "id": "br5f7-7uaaa-aaaaa-qaaca-cai"
+      "metadata": [{ "name": "candid:service" }]
     },
     "agentic-client-agent": {
       "type": "custom",
@@ -54,37 +51,7 @@
       "candid": ".kybra/agent-orchestration/client-agent/client-agent.did",
       "wasm": ".kybra/agent-orchestration/client-agent/client-agent.wasm",
       "gzip": true,
-      "metadata": [{ "name": "candid:service" }],
-      "id": "bd3sg-teaaa-aaaaa-qaaba-cai"
-    },
-    "agentic-weather-agent": {
-      "type": "custom",
-      "build": "bash build-python-canister.sh agent-orchestration/ weather-agent",
-      "candid": ".kybra/agent-orchestration/weather-agent/weather-agent.did",
-      "wasm": ".kybra/agent-orchestration/weather-agent/weather-agent.wasm",
-      "gzip": true,
-      "metadata": [{ "name": "candid:service" }],
-      "id": "be2us-64aaa-aaaaa-qaabq-cai"
-    },
-    "agentic-airquality-agent": {
-      "type": "custom",
-      "build": "bash build-python-canister.sh agent-orchestration/ airquality-agent",
-      "candid": ".kybra/agent-orchestration/airquality-agent/airquality-agent.did",
-      "wasm": ".kybra/agent-orchestration/airquality-agent/airquality-agent.wasm",
-      "gzip": true,
-      "metadata": [{ "name": "candid:service" }],
-      "id": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
-    },
-    "agent-weather_agent": {
-      "dependencies": ["llm"],
-      "type": "motoko",
-      "main": "src/agents/weather_agent/main.mo",
-      "id": "ulvla-h7777-77774-qaacq-cai"
-    },
-    "agent-airquality_agent": {
-      "dependencies": ["llm"],
-      "type": "motoko",
-      "main": "src/agents/airquality_agent/main.mo"
+      "metadata": [{ "name": "candid:service" }]
     }
   },
   "defaults": {

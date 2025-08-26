@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Backend: add get_list_agents() API that proxies Agent Registry's get_list_agents and returns the raw RegistryReturnType.
+- Frontend: load agent list dynamically from backend in Marketplace and Canvas; add generic agent node type for unknown agent kinds.
+- Frontend: add prompt widget to Canvas that calls backend execute_prompt and displays ok/err.
 
 - Backend: add execute_prompt(prompt) that reads connected agents from user canvas, builds JSON request with prompt, connected_agent_list, and user principal, and delegates to agentic-client-agent execute_task returning raw ReturnType.
 

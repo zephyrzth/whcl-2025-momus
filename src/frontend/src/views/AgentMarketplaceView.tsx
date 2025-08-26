@@ -1,13 +1,9 @@
-import React, { useState, useMemo } from "react";
-import { AgentCard, CreateAgentForm } from "../components";
-import {
-  marketplaceAgents,
-  categoryOptions,
-  sortOptions,
-} from "../services/agentMarketplace";
+import React, { useState, useMemo, useEffect } from "react";
+import { CreateAgentForm } from "../components";
 import { pythonCompilationService } from "../services/pythonCompilationService";
 import { wasmDeploymentService } from "../services/wasmDeploymentService";
 import { useAuth } from "../contexts/AuthContext";
+import { fetchRegistryAgents } from "../services/agentRegistryService";
 
 interface AgentMarketplaceViewProps {
   onError: (error: string) => void;
@@ -16,8 +12,10 @@ interface AgentMarketplaceViewProps {
 
 export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
   const { isAuthenticated } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedSort, setSelectedSort] = useState("name");
+  const [agents, setAgents] = useState<{ agent_name: string; canister_id: string }[]>([]);
+  const [loadError, setLoadError] = useState<string>("");
+  const [loadingAgents, setLoadingAgents] = useState<boolean>(false);
+  const [selectedSort] = useState("name");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
@@ -25,6 +23,21 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
   const [deploymentStatus, setDeploymentStatus] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoadingAgents(true);
+      const res = await fetchRegistryAgents();
+      if (res.success) {
+        setAgents(res.data ?? []);
+        setLoadError("");
+      } else {
+        setLoadError(res.error || "Failed to load agents");
+      }
+      setLoadingAgents(false);
+    };
+    load();
+  }, []);
 
   const handleWasmUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -149,23 +162,13 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
   };
 
   const filteredAndSortedAgents = useMemo(() => {
-    let filtered = marketplaceAgents;
-
-    // Filter by category
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (agent) => agent.category === selectedCategory,
-      );
-    }
+    let filtered = agents;
 
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (agent) =>
-          agent.name.toLowerCase().includes(query) ||
-          agent.description.toLowerCase().includes(query) ||
-          agent.tags.some((tag) => tag.toLowerCase().includes(query)),
+      filtered = filtered.filter((agent) =>
+        agent.agent_name.toLowerCase().includes(query),
       );
     }
 
@@ -173,16 +176,13 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
     const sorted = [...filtered].sort((a, b) => {
       switch (selectedSort) {
         case "name":
-          return a.name.localeCompare(b.name);
-        case "category":
-          return a.category.localeCompare(b.category);
         default:
-          return 0;
+          return a.agent_name.localeCompare(b.agent_name);
       }
     });
 
     return sorted;
-  }, [selectedCategory, selectedSort, searchQuery]);
+  }, [agents, selectedSort, searchQuery]);
 
   console.log("showCreateForm state:", showCreateForm);
 
@@ -271,7 +271,7 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
             </div>
           )}
 
-          {/* Search and Filters */}
+          {/* Search */}
           <div className="mb-6 space-y-4">
             {/* Search Bar */}
             <div>
@@ -283,62 +283,32 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
                 className="w-full rounded border border-gray-600 bg-gray-800 px-4 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               />
             </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
-                  Category
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="rounded border border-gray-600 bg-gray-800 px-3 py-2 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                >
-                  {categoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-300">
-                  Sort By
-                </label>
-                <select
-                  value={selectedSort}
-                  onChange={(e) => setSelectedSort(e.target.value)}
-                  className="rounded border border-gray-600 bg-gray-800 px-3 py-2 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
           </div>
 
           {/* Results Count */}
           <div className="mb-4">
             <p className="text-gray-300">
-              Showing {filteredAndSortedAgents.length} of{" "}
-              {marketplaceAgents.length} agents
+              {loadingAgents
+                ? "Loading agents..."
+                : `Showing ${filteredAndSortedAgents.length} agents`}
             </p>
           </div>
 
           {/* Agent Grid */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredAndSortedAgents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
+              <div
+                key={agent.canister_id}
+                className="rounded-lg border border-gray-600 bg-gray-700 p-4 shadow-lg"
+              >
+                <div className="mb-1 text-sm text-gray-400">{agent.canister_id}</div>
+                <div className="text-lg font-bold">{agent.agent_name}</div>
+              </div>
             ))}
           </div>
 
           {/* Empty State */}
-          {filteredAndSortedAgents.length === 0 && (
+          {!loadingAgents && filteredAndSortedAgents.length === 0 && (
             <div className="py-12 text-center">
               <div className="mb-4 text-4xl">🔍</div>
               <p className="text-gray-400">
@@ -347,6 +317,12 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
               <p className="mt-2 text-sm text-gray-500">
                 Try adjusting your search or filters.
               </p>
+            </div>
+          )}
+
+          {loadError && (
+            <div className="mt-4 rounded border border-red-600 bg-red-900/30 p-3 text-red-300">
+              {loadError}
             </div>
           )}
 
