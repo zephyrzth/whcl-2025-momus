@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add header user menu showing Principal ID, wallet Account ID, and ICP balance (local ledger), with copy actions and live fetch on open.
 
+- Auto-register newly deployed agents: after deploy_from_chunks, query agent get_metadata to obtain name and register with Agent Registry canister.
+
 ### Added
 
 - Add WASM upload button in Agent Marketplace for deploying gzipped WASM files
