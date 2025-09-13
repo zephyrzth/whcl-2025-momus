@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { indexService, formatPricePerCall, formatTotal } from "../services/indexService";
+import {
+  indexService,
+  formatPricePerCall,
+  formatTotal,
+} from "../services/indexService";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -34,9 +38,9 @@ export function UsageView() {
       .then((daily) => {
         const mapped: UsageRow[] = daily.map((d) => ({
           date: d.date,
-            calls: d.calls,
-            pricePerCall: formatPricePerCall(),
-            total: formatTotal(d.calls),
+          calls: d.calls,
+          pricePerCall: formatPricePerCall(),
+          total: formatTotal(d.calls),
         }));
         setRows(mapped);
       })
@@ -93,7 +97,13 @@ export function UsageView() {
           )}
           {error && (
             <div className="mb-6 rounded border border-red-700/40 bg-red-900/30 p-4 text-sm text-red-300">
-              Failed to load usage: {error} <button className="underline" onClick={() => window.location.reload()}>Retry</button>
+              Failed to load usage: {error}{" "}
+              <button
+                className="underline"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </button>
             </div>
           )}
 
@@ -105,7 +115,9 @@ export function UsageView() {
 
           {rows.length > 0 && (
             <div className="mb-10 rounded border border-gray-800 bg-gray-900 p-6 shadow">
-              <h2 className="mb-4 text-lg font-semibold text-white">Metered Usage</h2>
+              <h2 className="mb-4 text-lg font-semibold text-white">
+                Metered Usage
+              </h2>
               <div className="h-64">
                 <Bar data={chartData} options={chartOptions} />
               </div>
@@ -114,7 +126,9 @@ export function UsageView() {
 
           {rows.length > 0 && (
             <div className="rounded border border-gray-800 bg-gray-900 p-6 shadow">
-              <h2 className="mb-4 text-lg font-semibold text-white">Usage Breakdown</h2>
+              <h2 className="mb-4 text-lg font-semibold text-white">
+                Usage Breakdown
+              </h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -127,7 +141,10 @@ export function UsageView() {
                   </thead>
                   <tbody>
                     {rows.map((r) => (
-                      <tr key={r.date} className="border-b border-gray-800 last:border-none">
+                      <tr
+                        key={r.date}
+                        className="border-b border-gray-800 last:border-none"
+                      >
                         <td className="py-2 text-white">{r.date}</td>
                         <td className="py-2 text-white">{r.calls}</td>
                         <td className="py-2 text-white">{r.pricePerCall}</td>

@@ -7,12 +7,13 @@ export interface DailyUsage {
 
 export const PRICE_PER_CALL_E8S = 1_000_000n; // 0.01 ICP
 
-
 export const indexService = {
   // Fetch outgoing (debit) transfers for current month and aggregate daily call counts.
   async getDailyUsageCurrentMonth(principalId: string): Promise<DailyUsage[]> {
     if (!principalId) throw new Error("Missing principalId");
-    const raw = (await (backend as any).get_usage_current_month(1000)) as Array<{
+    const raw = (await (backend as any).get_usage_current_month(
+      1000,
+    )) as Array<{
       date: string;
       calls: bigint;
       price_per_call_e8s: bigint;
