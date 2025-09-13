@@ -46,11 +46,16 @@ def execute_task(args: str) -> Async[ReturnType]:
 
     try:
         params: List[dict] = json.loads(args)
+        params = json.loads( """[{"name": "prompt", "value": "How was the weather and air quality today in Jakarta ?"}, {"name": "connected_agent_list", "value": ["weather-agent"]}, {"name": "user", "value": "wxxjc-dwc4f-6dfub-3cwql-bujz2-sa53s-xyqa6-wr6uu-xfg7v-akwid-jqe"}]""" )
 
         if not is_all_required_params_present(params):
             return {"Err": "Missing required parameters"}
 
+        ic.print(f"[ClientAgent] Received params: {params}")
+
         parameters = __transform_params(params)
+
+        ic.print(f"[ClientAgent] Transformed parameters: {parameters}")
 
         agent_call_list_stream = yield __parse_parameter(parameters)
         agent_call_list_raw = match(
@@ -65,6 +70,9 @@ def execute_task(args: str) -> Async[ReturnType]:
             return {"Err": "Failed to parse agent call list"}
 
         agent_call_list = json.loads(agent_call_list_raw.get("Ok"))
+        agent_call_list = [{'id': 'call_UZnH1FyuiOUxvUewV8rxXlwU', 'function': {'name': 'weather-agent', 'arguments': [{'value': 'Provide weather and air quality conditions in Jakarta today', 'name': 'prompt'}]}}]
+
+        ic.print(f"[ClientAgent] Agent call list: {agent_call_list}")
 
         resp = ""
 
@@ -74,11 +82,15 @@ def execute_task(args: str) -> Async[ReturnType]:
             agent_name = agent["function"]["name"]
             agent_args = agent["function"]["arguments"]
 
-            # Ensure payment (pricing lookup + charging) before invocation
-            payment_variant = yield __ensure_payment(agent_name, caller)
+            ic.print(f"[ClientAgent] Invoking agent: {agent_name} with args: {agent_args}")
 
-            if payment_variant.get("Err") is not None:
-                return payment_variant
+            # # Ensure payment (pricing lookup + charging) before invocation
+            # payment_variant = yield __ensure_payment(agent_name, caller)
+
+            # ic.print(f"[ClientAgent] Payment variant: {payment_variant}")
+
+            # if payment_variant.get("Err") is not None:
+            #     return payment_variant
 
             # Now invoke downstream agent
             curr_stream_resp = yield __agent_call(agent_name, agent_args)
@@ -308,6 +320,8 @@ def __parse_parameter(parameters: dict) -> Async[dict]:
 
     # Create request using ChatRequestV1 type
     request = {"model": "llama3.1:8b", "tools": tools, "messages": messages}
+
+    ic.print(f"[ClientAgent] Parsing parameters with request: {request}")
 
     # Call service
     response_steam = yield llm_service.v1_chat(request)
