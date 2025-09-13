@@ -12,7 +12,9 @@ interface AgentMarketplaceViewProps {
 
 export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
   const { isAuthenticated } = useAuth();
-  const [agents, setAgents] = useState<{ agent_name: string; canister_id: string }[]>([]);
+  const [agents, setAgents] = useState<
+    { agent_name: string; canister_id: string }[]
+  >([]);
   const [loadError, setLoadError] = useState<string>("");
   const [loadingAgents, setLoadingAgents] = useState<boolean>(false);
   const [selectedSort] = useState("name");
@@ -301,7 +303,9 @@ export function AgentMarketplaceView({}: AgentMarketplaceViewProps) {
                 key={agent.canister_id}
                 className="rounded-lg border border-gray-600 bg-gray-700 p-4 shadow-lg"
               >
-                <div className="mb-1 text-sm text-gray-400">{agent.canister_id}</div>
+                <div className="mb-1 text-sm text-gray-400">
+                  {agent.canister_id}
+                </div>
                 <div className="text-lg font-bold">{agent.agent_name}</div>
               </div>
             ))}

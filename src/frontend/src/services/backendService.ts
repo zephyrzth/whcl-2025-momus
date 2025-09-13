@@ -1,5 +1,8 @@
 import { backend } from "../../../declarations/backend";
-import type { _SERVICE, ReturnType as BackendReturnType } from "../../../declarations/backend/backend.did";
+import type {
+  _SERVICE,
+  ReturnType as BackendReturnType,
+} from "../../../declarations/backend/backend.did";
 import { AuthClient } from "@dfinity/auth-client";
 
 /**
@@ -45,14 +48,19 @@ export const backendService = {
    * Execute a prompt through the backend canister, which uses the caller's canvas state.
    * Returns a typed result with either ok or err.
    */
-  async executePrompt(prompt: string): Promise<{ type: "ok" | "err"; value: string }> {
+  async executePrompt(
+    prompt: string,
+  ): Promise<{ type: "ok" | "err"; value: string }> {
     const actor = await getAuthenticatedBackendActor();
     const res: BackendReturnType = await actor.execute_prompt(prompt);
     if ("Ok" in res) {
-      const val = res.Ok && res.Ok.length > 0 ? res.Ok[0] ?? "" : "";
+      const val = res.Ok && res.Ok.length > 0 ? (res.Ok[0] ?? "") : "";
       return { type: "ok", value: val };
     }
-    const err = (res as any).Err && (res as any).Err.length > 0 ? (res as any).Err[0] ?? "" : "";
+    const err =
+      (res as any).Err && (res as any).Err.length > 0
+        ? ((res as any).Err[0] ?? "")
+        : "";
     return { type: "err", value: err };
   },
 };
@@ -61,7 +69,9 @@ async function getAuthenticatedBackendActor(): Promise<_SERVICE> {
   const authClient = await AuthClient.create();
   const identity = authClient.getIdentity();
 
-  const { canisterId, createActor } = await import("../../../declarations/backend");
+  const { canisterId, createActor } = await import(
+    "../../../declarations/backend"
+  );
   if (!canisterId) throw new Error("Backend canister ID not found");
 
   const isLocal = process.env.DFX_NETWORK !== "ic";

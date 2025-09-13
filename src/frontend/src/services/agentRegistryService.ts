@@ -18,7 +18,7 @@ export interface FetchAgentsResult {
 export async function fetchRegistryAgents(): Promise<FetchAgentsResult> {
   try {
     const res = await backend.get_list_agents();
-  if ("Ok" in res) {
+    if ("Ok" in res) {
       // Note: res.Ok is [] | [string]; when empty, treat as empty list
       if (!res.Ok || res.Ok.length === 0) {
         return { success: true, data: [] };
@@ -30,7 +30,9 @@ export async function fetchRegistryAgents(): Promise<FetchAgentsResult> {
           // Validate minimal structure
           const agents: RegistryAgent[] = parsed
             .map((it) => ({
-              agent_name: String((it as any).agent_name ?? (it as any).name ?? ""),
+              agent_name: String(
+                (it as any).agent_name ?? (it as any).name ?? "",
+              ),
               canister_id: String((it as any).canister_id ?? ""),
             }))
             .filter((a) => a.agent_name && a.canister_id);
