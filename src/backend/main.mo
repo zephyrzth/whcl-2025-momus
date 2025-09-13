@@ -608,4 +608,177 @@ persistent actor Main {
     };
     acc;
   };
+
+  // ==============================================
+  // Usage helper: fetch debit transfer timestamps
+  // ==============================================
+  // Minimal subset of Index canister types
+  type Tokens = { e8s : Nat64 };
+  type TimeStamp = { timestamp_nanos : Nat64 };
+  type TransferOp = {
+    to : Text;
+    fee : Tokens;
+    from : Text;
+    amount : Tokens;
+    spender : ?Text;
+  };
+  type Operation = {
+    #Approve : {
+      fee : Tokens;
+      from : Text;
+      allowance : Tokens;
+      expires_at : ?TimeStamp;
+      spender : Text;
+      expected_allowance : ?Tokens;
+    };
+    #Burn : { from : Text; amount : Tokens; spender : ?Text };
+    #Mint : { to : Text; amount : Tokens };
+    #Transfer : TransferOp;
+  };
+  type Transaction = {
+    memo : Nat64;
+    icrc1_memo : ?Blob;
+    operation : Operation;
+    created_at_time : ?TimeStamp;
+    timestamp : ?TimeStamp;
+  };
+  type TransactionWithId = { id : Nat64; transaction : Transaction };
+  type GetAccountTransactionsArgs = {
+    account : { owner : Principal; subaccount : ?[Nat8] };
+    start : ?Nat;
+    max_results : Nat;
+  };
+  type GetAccountIdentifierTransactionsResponse = {
+    balance : Nat64;
+    transactions : [TransactionWithId];
+    oldest_tx_id : ?Nat64;
+  };
+  type GetAccountIdentifierTransactionsResult = {
+    #Ok : GetAccountIdentifierTransactionsResponse;
+    #Err : { message : Text };
+  };
+  type Index = actor {
+    get_account_transactions : query GetAccountTransactionsArgs -> async GetAccountIdentifierTransactionsResult;
+  };
+
+  let INDEX_CANISTER_ID : Principal = Principal.fromText("qhbym-qaaaa-aaaaa-aaafq-cai");
+
+  // Returns up to `limit` debit transfer timestamps (nanoseconds) involving caller's principal account for the current month.
+  // NOTE: Direction detection is heuristic: we treat any #Transfer operation as a debit relative to the queried account since index scope is the account.
+  public shared (msg) func get_debit_transfer_timestamps(limit : Nat) : async [Nat64] {
+    let caller = msg.caller;
+    let index : Index = actor (Principal.toText(INDEX_CANISTER_ID));
+    let args : GetAccountTransactionsArgs = {
+      account = { owner = caller; subaccount = null };
+      start = null;
+      max_results = limit;
+    };
+    let res = await index.get_account_transactions(args);
+    var collected : [Nat64] = [];
+    switch (res) {
+      case (#Err(err)) { Debug.print("[usage] index error: " # err.message) };
+      case (#Ok(ok)) {
+        for (twi in ok.transactions.vals()) {
+          switch (twi.transaction.operation) {
+            case (#Transfer(_tr)) {
+              let tsOpt = switch (twi.transaction.timestamp) {
+                case (?ts) ?ts;
+                case null twi.transaction.created_at_time;
+              };
+              switch (tsOpt) {
+                case (?ts) {
+                  collected := Array.append(collected, [ts.timestamp_nanos]);
+                };
+                case null {};
+              };
+            };
+            case (_) {};
+          };
+        };
+      };
+    };
+    collected;
+  };
+
+  // Price per call constant (0.01 ICP in e8s)
+  let PRICE_PER_CALL_E8S : Nat64 = 1_000_000; // 1e6 e8s = 0.01 ICP
+
+  public type DailyUsage = {
+    date : Text; // YYYY-MM-DD UTC
+    calls : Nat;
+    price_per_call_e8s : Nat64;
+    total_e8s : Nat64;
+  };
+
+  // Gregorian date conversion helpers (days since Unix epoch -> Y/M/D)
+  func dateFromDays(daysNat : Nat) : (Int, Int, Int) {
+    let days : Int = Int.abs(daysNat);
+    // Algorithm converting days to Gregorian date (JDN based)
+    let jdn = days + 2440588; // Unix epoch JDN offset
+    var l = jdn + 68569;
+    let n = (4 * l) / 146097;
+    l := l - (146097 * n + 3) / 4;
+    let i = (4000 * (l + 1)) / 1461001;
+    l := l - (1461 * i) / 4 + 31;
+    let j = (80 * l) / 2447;
+    let day = l - (2447 * j) / 80;
+    l := j / 11;
+    let month = j + 2 - 12 * l;
+    let year = 100 * (n - 49) + i + l;
+    (year, month, day);
+  };
+
+  func pad2Int(n : Int) : Text {
+    let t = Int.toText(n);
+    if (n >= 0 and n < 10) { "0" # t } else { t };
+  };
+
+  func isoDate(tsNs : Nat64) : Text {
+    let seconds = tsNs / 1_000_000_000;
+    let days = seconds / 86_400; // whole days since epoch (Nat64)
+    let (y, m, d) = dateFromDays(Nat64.toNat(days));
+    Int.toText(y) # "-" # pad2Int(m) # "-" # pad2Int(d);
+  };
+
+  // Aggregated usage for current month (based on index canister). Falls back to mock if empty.
+  public shared (_) func get_usage_current_month(limit : Nat) : async [DailyUsage] {
+    let rawTs = await get_debit_transfer_timestamps(limit);
+    // Derive current year-month from now
+    let nowNs : Nat64 = Nat64.fromIntWrap(Time.now());
+    let nowSeconds = nowNs / 1_000_000_000;
+    let nowDays = nowSeconds / 86_400;
+    let (cy, cm, _cd) = dateFromDays(Nat64.toNat(nowDays));
+    func isCurrentMonth(ts : Nat64) : Bool {
+      let seconds = ts / 1_000_000_000;
+      let days = seconds / 86_400;
+      let (y, m, _d) = dateFromDays(Nat64.toNat(days));
+      y == cy and m == cm;
+    };
+
+    let map = HashMap.HashMap<Text, Nat>(16, Text.equal, Text.hash);
+    for (ts in rawTs.vals()) {
+      if (isCurrentMonth(ts)) {
+        let dayStr = isoDate(ts);
+        switch (map.get(dayStr)) {
+          case (?c) { map.put(dayStr, c + 1) };
+          case null { map.put(dayStr, 1) };
+        };
+      };
+    };
+    var usages : [DailyUsage] = [];
+    for ((k, v) in map.entries()) {
+      let total = PRICE_PER_CALL_E8S * Nat64.fromNat(v);
+      usages := Array.append<DailyUsage>(usages, [{ date = k; calls = v; price_per_call_e8s = PRICE_PER_CALL_E8S; total_e8s = total }]);
+    };
+    // Sort ascending by date text (lexicographic works for YYYY-MM-DD)
+    let sorted = Array.sort<DailyUsage>(
+      usages,
+      func(a : DailyUsage, b : DailyUsage) : { #less; #equal; #greater } {
+        if (a.date < b.date) { #less } else if (a.date == b.date) { #equal } else {
+          #greater;
+        };
+      },
+    );
+    sorted;
+  };
 };

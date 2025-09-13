@@ -12,7 +12,8 @@ cp ./canister_ids.json ./.dfx/local/canister_ids.json;
 
 # Deploy all canisters
 echo "3️⃣ Deploying all canisters..."
-dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger
+dfx deploy icp_ledger_canister --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai
+dfx deploy icp_index_canister --specified-id qhbym-qaaaa-aaaaa-aaafq-cai
 dfx deploy
 
 # # Wait and verify deployment completed

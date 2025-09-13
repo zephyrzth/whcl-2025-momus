@@ -12,6 +12,7 @@ import {
   RegisterView,
   AgentCanvasView,
   AgentMarketplaceView,
+  UsageView,
 } from "./views";
 
 function App() {
@@ -74,6 +75,23 @@ function App() {
                           onError={() => {}}
                           setLoading={() => {}}
                         />
+                      </div>
+                    </div>
+                  </div>
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/usage"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <div className="min-h-screen bg-gray-900 py-8">
+                    <div className="container mx-auto px-4">
+                      <div className="mx-auto max-w-6xl">
+                        <UsageView />
                       </div>
                     </div>
                   </div>

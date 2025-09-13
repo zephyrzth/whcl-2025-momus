@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Usage page (`/usage`) showing current month metered usage chart and daily transaction history (counts of outgoing transfers, fixed price per call 0.01 ICP, and daily totals). Accessible from user dropdown under Balance.
 
 ### Added
 

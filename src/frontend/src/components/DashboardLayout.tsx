@@ -223,6 +223,18 @@ function UserMenu() {
               </div>
             </div>
 
+            <div>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/usage");
+                }}
+                className="mt-2 w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-gray-700"
+              >
+                Usage
+              </button>
+            </div>
+
             <div className="mt-3 border-t border-gray-800 pt-3">
               <button
                 onClick={handleLogout}
